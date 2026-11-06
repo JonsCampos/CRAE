@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -10,14 +10,11 @@ import {
   Vibration,
 } from 'react-native';
 import { crudListaStyles as styles } from '../styles';
+import { supabase } from '../App';
 
-export default function Localizacoes({
-  localizacoes,
-  materiais,
-  adicionarLocalizacao,
-  editarLocalizacao,
-  removerLocalizacao,
-}) {
+export default function Localizacoes() {
+  const [localizacoes, setLocalizacoes] = useState([]);
+  const [materiais, setMateriais] = useState([]);
   const [busca, setBusca] = useState('');
 
   const [modalCriarVisible, setModalCriarVisible] = useState(false);
@@ -34,6 +31,52 @@ export default function Localizacoes({
 
   const [modalExcluirVisible, setModalExcluirVisible] = useState(false);
 
+  // --- BUSCAR DADOS DO SUPABASE ---
+  const carregarDadosDoBanco = async () => {
+    try {
+      // 1. Busca os locais da tabela GM_LOCAIS
+      const { data: locaisData, error: erroLocais } = await supabase
+        .from('GM_LOCAIS')
+        .select('*');
+
+      if (erroLocais) {
+        console.log('Erro ao buscar locais:', erroLocais.message);
+      } else {
+        // Mapeia para o padrão esperado pela interface (id e nome)
+        const locaisFormatados = locaisData.map((loc) => ({
+          id: String(loc.IdLocal),
+          nome: loc.NmLocal,
+        }));
+        setLocalizacoes(locaisFormatados);
+        console.log(locaisFormatados);
+      }
+
+      // 2. Busca os materiais para calcular a contagem de itens por local
+      const { data: matsData, error: erroMats } = await supabase
+        .from('GM_Materiais')
+        .select(`
+          idMaterial,
+          NmMaterial,
+          GM_LOCAIS ( NmLocal )
+        `);
+
+      if (!erroMats) {
+        const matsFormatados = matsData.map((m) => ({
+          id: String(m.idMaterial),
+          nome: m.NmMaterial,
+          localizacao: m.GM_LOCAIS?.NmLocal || 'Sem Local',
+        }));
+        setMateriais(matsFormatados);
+      }
+    } catch (err) {
+      console.log('Erro na conexão com o Supabase:', err);
+    }
+  };
+
+  useEffect(() => {
+    carregarDadosDoBanco();
+  }, []);
+
   const mostrarAvisoErro = (msg) => {
     Vibration.vibrate(400);
     setMensagemAviso(msg);
@@ -46,7 +89,8 @@ export default function Localizacoes({
     setModalCriarVisible(true);
   };
 
-  const confirmarCriacaoLocal = () => {
+  // --- CRIAR LOCAL NO SUPABASE ---
+  const confirmarCriacaoLocal = async () => {
     const nomeLimpo = novaLocalizacao.trim();
     if (nomeLimpo === '') {
       Vibration.vibrate(400);
@@ -63,9 +107,18 @@ export default function Localizacoes({
       return;
     }
 
-    adicionarLocalizacao(nomeLimpo);
+    const { error } = await supabase
+      .from('GM_LOCAIS')
+      .insert([{ NmLocal: nomeLimpo }]);
+
+    if (error) {
+      mostrarAvisoErro('Erro ao salvar local no banco: ' + error.message);
+      return;
+    }
+
     setModalCriarVisible(false);
     setNovaLocalizacao('');
+    carregarDadosDoBanco(); // Atualiza a lista da tela
   };
 
   const abrirModalEdicao = (loc) => {
@@ -75,7 +128,8 @@ export default function Localizacoes({
     setModalEditarVisible(true);
   };
 
-  const salvarEdicaoLocal = () => {
+  // --- EDITAR LOCAL NO SUPABASE ---
+  const salvarEdicaoLocal = async () => {
     const nomeLimpo = novoNomeEdicao.trim();
     if (nomeLimpo === '') {
       Vibration.vibrate(400);
@@ -94,13 +148,19 @@ export default function Localizacoes({
       return;
     }
 
-    editarLocalizacao(
-      localSelecionado.id,
-      localSelecionado.nome,
-      nomeLimpo
-    );
+    const { error } = await supabase
+      .from('GM_LOCAIS')
+      .update({ NmLocal: nomeLimpo })
+      .eq('IdLocal', localSelecionado.id);
+
+    if (error) {
+      mostrarAvisoErro('Erro ao atualizar local: ' + error.message);
+      return;
+    }
+
     setModalEditarVisible(false);
     setLocalSelecionado(null);
+    carregarDadosDoBanco(); // Atualiza a lista da tela
   };
 
   const tentarExcluirLocal = (loc) => {
@@ -119,21 +179,31 @@ export default function Localizacoes({
     setModalExcluirVisible(true);
   };
 
-  const confirmarExclusao = () => {
+  // --- EXCLUIR LOCAL NO SUPABASE ---
+  const confirmarExclusao = async () => {
     if (localSelecionado) {
-      removerLocalizacao(localSelecionado.id);
+      const { error } = await supabase
+        .from('GM_LOCAIS')
+        .delete()
+        .eq('IdLocal', localSelecionado.id);
+
+      if (error) {
+        mostrarAvisoErro('Erro ao excluir local: ' + error.message);
+      } else {
+        carregarDadosDoBanco(); // Atualiza a lista da tela
+      }
     }
     setModalExcluirVisible(false);
     setLocalSelecionado(null);
   };
 
-  // Filtra as localizações pelo texto digitado na busca
   const localizacoesFiltradas = (localizacoes || []).filter((loc) =>
     loc.nome.toLowerCase().includes(busca.toLowerCase())
   );
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Modais mantidos idênticos aos originais */}
       <Modal
         animationType="fade"
         transparent={true}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -12,15 +12,14 @@ import {
   Vibration,
 } from 'react-native';
 import { homeStyles as styles, cardEsgotadoStyle } from '../styles';
+import { supabase } from '../App'
 
-export default function Home({
-  navigation,
-  materiais,
-  atualizarEstoque,
-  removerMaterial,
-}) {
+export default function Home({ navigation, removerMaterial }) {
   const [busca, setBusca] = useState('');
   const [modoVisao, setModoVisao] = useState('categoria');
+
+  // Estado que armazenará os dados vindos do Supabase
+  const [materiais, setMateriais] = useState([]);
 
   const [modalExcluirVisible, setModalExcluirVisible] = useState(false);
   const [itemSelecionado, setItemSelecionado] = useState(null);
@@ -30,6 +29,46 @@ export default function Home({
   const [erroEstoque, setErroEstoque] = useState('');
 
   const regexApenasNumeros = /^\d+$/;
+
+  // --- BUSCAR DADOS DO SUPABASE COM JOIN ---
+  const carregarMateriaisDoSupabase = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('GM_Materiais')
+        .select(`
+          idMaterial,
+          NmMaterial,
+          DscMaterial,
+          QtdMaterial,
+          GM_Categorias ( nmCategoria ),
+          GM_LOCAIS ( NmLocal )
+        `);
+
+      if (error) {
+        console.log('Erro ao buscar do Supabase:', error.message);
+        return;
+      }
+
+      // Mapeamos para o formato que os seus cards e filtros já utilizam na tela
+      const dadosFormatados = data.map((item) => ({
+        id: String(item.idMaterial),
+        nome: item.NmMaterial,
+        descricao: item.DscMaterial,
+        quantidade: item.QtdMaterial,
+        categoria: item.GM_Categorias?.nmCategoria || 'Geral',
+        localizacao: item.GM_LOCAIS?.NmLocal || 'Sem Local',
+      }));
+
+      setMateriais(dadosFormatados);
+    } catch (err) {
+      console.log('Erro de conexão:', err);
+    }
+  };
+
+  // Carrega os dados assim que a tela abre ou foca
+  useEffect(() => {
+    carregarMateriaisDoSupabase();
+  }, []);
 
   const compartilharWhatsApp = (item) => {
     const categoriaTexto = item.categoria ? item.categoria : 'Geral';
@@ -44,36 +83,47 @@ export default function Home({
     setModalEstoqueVisible(true);
   };
 
-  const confirmarMovimentacao = (tipo) => {
+  const confirmarMovimentacao = async (tipo) => {
     if (!regexApenasNumeros.test(qtdMovimentacao.trim())) {
-      Vibration.vibrate(400); // Erro: vibra!
+      Vibration.vibrate(400);
       setErroEstoque('Digite apenas números inteiros válidos.');
       return;
     }
 
     const valor = parseInt(qtdMovimentacao.trim(), 10);
     if (valor <= 0) {
-      Vibration.vibrate(400); // Erro: vibra!
+      Vibration.vibrate(400);
       setErroEstoque('A quantidade deve ser maior que zero.');
       return;
     }
 
+    let novoSaldo = itemSelecionado.quantidade;
     if (tipo === 'entrada') {
-      const novoSaldo = itemSelecionado.quantidade + valor;
-      atualizarEstoque(itemSelecionado.id, novoSaldo);
-      setModalEstoqueVisible(false);
+      novoSaldo += valor;
     } else if (tipo === 'saida') {
       if (valor > itemSelecionado.quantidade) {
-        Vibration.vibrate(400); // Erro de estoque insuficiente: vibra!
+        Vibration.vibrate(400);
         setErroEstoque(
           `Saldo insuficiente! Tentou retirar ${valor}, mas só há ${itemSelecionado.quantidade} em estoque.`
         );
         return;
       }
-      const novoSaldo = itemSelecionado.quantidade - valor;
-      atualizarEstoque(itemSelecionado.id, novoSaldo);
-      setModalEstoqueVisible(false);
+      novoSaldo -= valor;
     }
+
+    // Atualiza diretamente no Supabase
+    const { error } = await supabase
+      .from('GM_Materiais')
+      .update({ QtdMaterial: novoSaldo })
+      .eq('idMaterial', itemSelecionado.id);
+
+    if (error) {
+      console.log('Erro ao atualizar estoque:', error.message);
+      return;
+    }
+
+    setModalEstoqueVisible(false);
+    carregarMateriaisDoSupabase(); // Recarrega a lista atualizada
   };
 
   const pedirConfirmacaoExclusao = (item) => {
@@ -81,9 +131,16 @@ export default function Home({
     setModalExcluirVisible(true);
   };
 
-  const confirmarExclusao = () => {
+  const confirmarExclusao = async () => {
     if (itemSelecionado) {
-      removerMaterial(itemSelecionado.id);
+      const { error } = await supabase
+        .from('GM_Materiais')
+        .delete()
+        .eq('idMaterial', itemSelecionado.id);
+
+      if (!error) {
+        carregarMateriaisDoSupabase(); // Atualiza a lista após excluir
+      }
     }
     setModalExcluirVisible(false);
     setItemSelecionado(null);
@@ -99,6 +156,7 @@ export default function Home({
     return nome.includes(termo) || local.includes(termo) || cat.includes(termo);
   });
 
+  // Agrupamento dinâmico por Categoria ou por Local baseado na aba selecionada
   const secoesAgrupadas = [];
   materiaisFiltrados.forEach((item) => {
     const chaveGrupo =
@@ -187,6 +245,7 @@ export default function Home({
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Modais de Estoque e Exclusão mantidos idênticos */}
       <Modal
         animationType="fade"
         transparent={true}
