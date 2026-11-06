@@ -10,8 +10,8 @@ import {
   Vibration,
 } from 'react-native';
 import base64 from 'react-native-base64';
-import { loginStyles as styles } from '../styles';
-import { supabase } from '../supabase';
+import { loginStyles as styles } from '../styles/styles';
+import { supabase } from '../database/supabase';
 
 export default function Login({ aoLogar }) {
   const [usr, setUsr] = useState('');
@@ -94,15 +94,15 @@ export default function Login({ aoLogar }) {
       </Modal>
 
       <View style={styles.card}>
-        <Text style={styles.titulo}>Acervo e Inventário</Text>
+        <Text style={styles.titulo}>CRAE</Text>
         <Text style={styles.subtitulo}>
-          Gestão de Materiais - Dra. Luna Ribeiro
+          Gestão de Ativos de Estoque
         </Text>
 
-        <Text style={styles.label}>USUÁRIO / MATRÍCULA</Text>
+        <Text style={styles.label}>USUÁRIO</Text>
         <TextInput
           style={styles.input}
-          placeholder="Ex: luna"
+          placeholder="Digite seu usuário"
           placeholderTextColor="#94A3B8"
           autoCapitalize="none"
           value={usr}

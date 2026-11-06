@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import base64 from 'react-native-base64';
-import { crudListaStyles as styles } from '../styles';
-import { supabase } from '../supabase';
+import { crudListaStyles as styles } from '../styles/styles';
+import { supabase } from '../database/supabase';
 
 // Regras reais exportadas para testes automatizados (Jest)
 export const regexUsuario = /^\w{3,}$/;
@@ -321,7 +321,7 @@ export default function Usuarios({ usuarioAtual, atualizarUsuarioLogado }) {
 
             <TextInput
               style={styles.inputModal}
-              placeholder="Login / Matrícula (ex: carlos)"
+              placeholder="Usuário"
               placeholderTextColor="#94A3B8"
               autoCapitalize="none"
               value={novoLogin}

@@ -12,8 +12,8 @@ import {
   Vibration,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { homeStyles as styles, cardEsgotadoStyle } from '../styles';
-import { supabase } from '../supabase';
+import { homeStyles as styles, cardEsgotadoStyle } from '../styles/styles';
+import { supabase } from '../database/supabase';
 
 // Função real exportada para testes automatizados (Jest)
 export function calcularMovimentacaoEstoque(estoqueAtual, valor, tipo) {
@@ -280,7 +280,7 @@ export default function Home({ navigation }) {
             <Text style={styles.modalSubtitulo}>
               {itemSelecionado?.nome} - Saldo atual:{' '}
               <Text style={{ fontWeight: 'bold', color: '#0F172A' }}>
-                {itemSelecionado?.quantidade} un.
+                {itemSelecionado?.quantidade} unidades.
               </Text>
             </Text>
 

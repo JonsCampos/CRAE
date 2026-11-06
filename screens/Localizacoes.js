@@ -10,8 +10,8 @@ import {
   Vibration,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { crudListaStyles as styles } from '../styles';
-import { supabase } from '../supabase';
+import { crudListaStyles as styles } from '../styles/styles';
+import { supabase } from '../database/supabase';
 
 export default function Localizacoes() {
   const [localizacoes, setLocalizacoes] = useState([]);

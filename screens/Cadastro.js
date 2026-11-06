@@ -11,8 +11,8 @@ import {
   Vibration,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { cadastroStyles as styles, inputBloqueadoStyle } from '../styles';
-import { supabase } from '../supabase';
+import { cadastroStyles as styles, inputBloqueadoStyle } from '../styles/styles';
+import { supabase } from '../database/supabase';
 
 export default function Cadastro({ route, navigation }) {
   const itemExistente = route.params?.itemParaEditar;
