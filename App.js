@@ -3,7 +3,8 @@ import { Pressable, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 
 import Login from './screens/Login';
 import Home from './screens/Home';
@@ -12,18 +13,13 @@ import Categorias from './screens/Categorias';
 import Localizacoes from './screens/Localizacoes';
 
 const Stack = createNativeStackNavigator();
-const Drawer = createDrawerNavigator();
+const Tab = createBottomTabNavigator();
 
 const CHAVE_MATERIAIS = '@inventario_materiais';
 const CHAVE_CATEGORIAS = '@inventario_categorias';
 const CHAVE_LOCALIZACOES = '@inventario_localizacoes';
 
-function TelaSair({ funcLogar }) {
-  useEffect(() => {
-    funcLogar(false);
-  }, []);
-  return null;
-}
+const COR_PRIMARIA = '#4F46E5';
 
 export default function App() {
   const [EstaLogado, setLogado] = useState(false);
@@ -158,151 +154,130 @@ export default function App() {
     salvarLocalizacoesStorage(novasLocalizacoes);
   };
 
+  // Telas de Categorias e Locais reutilizadas (abas e rotas do Stack)
+  const renderCategorias = (props) => (
+    <Categorias
+      {...props}
+      categorias={categorias}
+      materiais={materiais}
+      adicionarCategoria={adicionarCategoria}
+      editarCategoria={editarCategoria}
+      removerCategoria={removerCategoria}
+    />
+  );
+
+  const renderLocalizacoes = (props) => (
+    <Localizacoes
+      {...props}
+      localizacoes={localizacoes}
+      materiais={materiais}
+      adicionarLocalizacao={adicionarLocalizacao}
+      editarLocalizacao={editarLocalizacao}
+      removerLocalizacao={removerLocalizacao}
+    />
+  );
+
+  // Abas principais (Material, Categorias, Locais)
+  const AbasPrincipais = () => (
+    <Tab.Navigator
+      initialRouteName="Material"
+      screenOptions={({ route }) => ({
+        title: 'Inventário - Dra. Luna',
+        headerStyle: { backgroundColor: COR_PRIMARIA },
+        headerTintColor: '#FFFFFF',
+        headerTitleStyle: { fontWeight: 'bold', fontSize: 18 },
+        headerShadowVisible: false,
+        headerRight: () => (
+          <Pressable
+            onPress={() => setLogado(false)}
+            style={{ marginRight: 16, padding: 4 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: 'bold' }}>
+              Sair
+            </Text>
+          </Pressable>
+        ),
+        tabBarActiveTintColor: COR_PRIMARIA,
+        tabBarInactiveTintColor: '#64748B',
+        tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+        tabBarIcon: ({ color, size }) => {
+          const icones = {
+            Material: 'cube-outline',
+            Categorias: 'pricetags-outline',
+            Locais: 'location-outline',
+          };
+          return <Ionicons name={icones[route.name]} size={size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen name="Material" options={{ tabBarLabel: 'Material' }}>
+        {(props) => (
+          <Home
+            {...props}
+            materiais={materiais}
+            atualizarEstoque={atualizarEstoque}
+            removerMaterial={removerMaterial}
+          />
+        )}
+      </Tab.Screen>
+
+      <Tab.Screen name="Categorias" options={{ tabBarLabel: 'Categorias' }}>
+        {renderCategorias}
+      </Tab.Screen>
+
+      <Tab.Screen name="Locais" options={{ tabBarLabel: 'Locais' }}>
+        {renderLocalizacoes}
+      </Tab.Screen>
+    </Tab.Navigator>
+  );
+
   return (
     <NavigationContainer>
       {EstaLogado ? (
-        <Drawer.Navigator
+        <Stack.Navigator
           screenOptions={{
-            headerStyle: { backgroundColor: '#4F46E5' },
+            headerStyle: { backgroundColor: COR_PRIMARIA },
             headerTintColor: '#FFFFFF',
             headerTitleStyle: { fontWeight: 'bold', fontSize: 18 },
-            drawerActiveBackgroundColor: '#EEF2FF',
-            drawerActiveTintColor: '#4F46E5',
-            drawerInactiveTintColor: '#334155',
-            drawerLabelStyle: { fontWeight: 'bold', fontSize: 14 },
+            headerShadowVisible: false,
           }}
         >
-          <Drawer.Screen
-            name="AcervoStack"
-            options={{
-              title: 'Acervo Principal',
-              headerShown: false,
-            }}
-          >
-            {({ navigation: drawerNav }) => (
-              <Stack.Navigator
-                screenOptions={{
-                  headerStyle: { backgroundColor: '#4F46E5' },
-                  headerTintColor: '#FFFFFF',
-                  headerTitleStyle: { fontWeight: 'bold', fontSize: 18 },
-                  headerShadowVisible: false,
-                }}
-              >
-                <Stack.Screen
-                  name="Home"
-                  options={{
-                    title: 'Inventário - Dra. Luna',
-                    headerLeft: () => (
-                      <Pressable
-                        onPress={() => drawerNav.openDrawer()}
-                        style={{ marginRight: 16, padding: 4 }}
-                      >
-                        <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: 'bold' }}>
-                          ☰
-                        </Text>
-                      </Pressable>
-                    ),
-                  }}
-                >
-                  {(props) => (
-                    <Home
-                      {...props}
-                      materiais={materiais}
-                      atualizarEstoque={atualizarEstoque}
-                      removerMaterial={removerMaterial}
-                    />
-                  )}
-                </Stack.Screen>
+          <Stack.Screen
+            name="Abas"
+            component={AbasPrincipais}
+            options={{ headerShown: false }}
+          />
 
-                <Stack.Screen
-                  name="Cadastro"
-                  options={{ title: 'Ficha do Material' }}
-                >
-                  {(props) => (
-                    <Cadastro
-                      {...props}
-                      categorias={categorias}
-                      localizacoes={localizacoes}
-                      adicionarMaterial={adicionarMaterial}
-                      editarMaterial={editarMaterial}
-                    />
-                  )}
-                </Stack.Screen>
-
-                <Stack.Screen
-                  name="CategoriasStack"
-                  options={{ title: 'Gerenciar Categorias' }}
-                >
-                  {(props) => (
-                    <Categorias
-                      {...props}
-                      categorias={categorias}
-                      materiais={materiais}
-                      adicionarCategoria={adicionarCategoria}
-                      editarCategoria={editarCategoria}
-                      removerCategoria={removerCategoria}
-                    />
-                  )}
-                </Stack.Screen>
-
-                <Stack.Screen
-                  name="LocalizacoesStack"
-                  options={{ title: 'Gerenciar Locais Físicos' }}
-                >
-                  {(props) => (
-                    <Localizacoes
-                      {...props}
-                      localizacoes={localizacoes}
-                      materiais={materiais}
-                      adicionarLocalizacao={adicionarLocalizacao}
-                      editarLocalizacao={editarLocalizacao}
-                      removerLocalizacao={removerLocalizacao}
-                    />
-                  )}
-                </Stack.Screen>
-              </Stack.Navigator>
-            )}
-          </Drawer.Screen>
-
-          <Drawer.Screen
-            name="CategoriasDrawer"
-            options={{ title: 'Categorias' }}
+          <Stack.Screen
+            name="Cadastro"
+            options={{ title: 'Ficha do Material' }}
           >
             {(props) => (
-              <Categorias
+              <Cadastro
                 {...props}
                 categorias={categorias}
-                materiais={materiais}
-                adicionarCategoria={adicionarCategoria}
-                editarCategoria={editarCategoria}
-                removerCategoria={removerCategoria}
-              />
-            )}
-          </Drawer.Screen>
-
-          <Drawer.Screen
-            name="LocalizacoesDrawer"
-            options={{ title: 'Locais Físicos' }}
-          >
-            {(props) => (
-              <Localizacoes
-                {...props}
                 localizacoes={localizacoes}
-                materiais={materiais}
-                adicionarLocalizacao={adicionarLocalizacao}
-                editarLocalizacao={editarLocalizacao}
-                removerLocalizacao={removerLocalizacao}
+                adicionarMaterial={adicionarMaterial}
+                editarMaterial={editarMaterial}
               />
             )}
-          </Drawer.Screen>
+          </Stack.Screen>
 
-          <Drawer.Screen
-            name="Sair"
-            options={{ title: 'Sair do Sistema' }}
+          {/* Usadas pelos botões "Gerenciar / Criar" dentro do Cadastro */}
+          <Stack.Screen
+            name="CategoriasStack"
+            options={{ title: 'Gerenciar Categorias' }}
           >
-            {() => <TelaSair funcLogar={setLogado} />}
-          </Drawer.Screen>
-        </Drawer.Navigator>
+            {renderCategorias}
+          </Stack.Screen>
+
+          <Stack.Screen
+            name="LocalizacoesStack"
+            options={{ title: 'Gerenciar Locais Físicos' }}
+          >
+            {renderLocalizacoes}
+          </Stack.Screen>
+        </Stack.Navigator>
       ) : (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen
