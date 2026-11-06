@@ -18,7 +18,6 @@ export default function Home({
   materiais,
   atualizarEstoque,
   removerMaterial,
-  funcLogar,
 }) {
   const [busca, setBusca] = useState('');
   const [agruparPorCategoria, setAgruparPorCategoria] = useState(true);
@@ -269,29 +268,13 @@ export default function Home({
         </View>
       </Modal>
 
-      {/* Barra de Ações do Topo */}
-      <View style={styles.topoLinha}>
-        <Pressable
-          style={styles.botaoTopoPrimario}
-          onPress={() => navigation.navigate('Cadastro')}
-        >
-          <Text style={styles.textoTopoPrimario}>+ Novo Material</Text>
-        </Pressable>
-
-        <Pressable
-          style={styles.botaoTopoCategoria}
-          onPress={() => navigation.navigate('Categorias')}
-        >
-          <Text style={styles.textoTopoCategoria}>🗂️ Categorias</Text>
-        </Pressable>
-
-        <Pressable
-          style={styles.botaoTopoSair}
-          onPress={() => funcLogar(false)}
-        >
-          <Text style={styles.textoTopoSair}>Sair</Text>
-        </Pressable>
-      </View>
+      {/* Botão + Novo Material de volta ao topo da Home */}
+      <Pressable
+        style={styles.botaoNovoMaterialTopo}
+        onPress={() => navigation.navigate('Cadastro')}
+      >
+        <Text style={styles.textoBotaoNovoTopo}>+ Novo Material</Text>
+      </Pressable>
 
       {/* Barra de Pesquisa */}
       <TextInput
@@ -366,41 +349,18 @@ export default function Home({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC', padding: 16 },
-  topoLinha: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  botaoNovoMaterialTopo: {
+    backgroundColor: '#4F46E5',
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: 'center',
     marginBottom: 12,
   },
-  botaoTopoPrimario: {
-    flex: 1,
-    backgroundColor: '#4F46E5',
-    paddingVertical: 11,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginRight: 8,
+  textoBotaoNovoTopo: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
-  textoTopoPrimario: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 13 },
-  botaoTopoCategoria: {
-    backgroundColor: '#EEF2FF',
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  textoTopoCategoria: { color: '#4F46E5', fontWeight: 'bold', fontSize: 13 },
-  botaoTopoSair: {
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  textoTopoSair: { color: '#475569', fontWeight: 'bold', fontSize: 13 },
   inputBusca: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,

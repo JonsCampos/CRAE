@@ -16,6 +16,7 @@ export default function Cadastro({
   route,
   navigation,
   categorias,
+  localizacoes,
   adicionarMaterial,
   editarMaterial,
 }) {
@@ -29,11 +30,15 @@ export default function Cadastro({
       ? categorias[0].nome
       : ''
   );
+  const [localizacao, setLocalizacao] = useState(
+    itemExistente && itemExistente.localizacao
+      ? itemExistente.localizacao
+      : localizacoes.length > 0
+      ? localizacoes[0].nome
+      : ''
+  );
   const [descricao, setDescricao] = useState(
     itemExistente ? itemExistente.descricao : ''
-  );
-  const [localizacao, setLocalizacao] = useState(
-    itemExistente ? itemExistente.localizacao : ''
   );
   const [quantidade, setQuantidade] = useState(
     itemExistente ? String(itemExistente.quantidade) : '0'
@@ -41,7 +46,10 @@ export default function Cadastro({
 
   const [modalVisible, setModalVisible] = useState(false);
   const [mensagemModal, setMensagemModal] = useState('');
-  const [dropdownAberto, setDropdownAberto] = useState(false);
+
+  // Estados dos Menus Suspensos (Dropdowns)
+  const [dropdownCatAberto, setDropdownCatAberto] = useState(false);
+  const [dropdownLocAberto, setDropdownLocAberto] = useState(false);
 
   const salvarFormulario = () => {
     if (
@@ -61,7 +69,7 @@ export default function Cadastro({
         nome: nome.trim(),
         categoria: categoria,
         descricao: descricao.trim(),
-        localizacao: localizacao.trim(),
+        localizacao: localizacao,
         quantidade: itemExistente.quantidade,
       };
       Vibration.vibrate(300);
@@ -81,7 +89,7 @@ export default function Cadastro({
         nome: nome.trim(),
         categoria: categoria,
         descricao: descricao.trim(),
-        localizacao: localizacao.trim(),
+        localizacao: localizacao,
         quantidade: qtdNumerica,
       };
       Vibration.vibrate(300);
@@ -117,8 +125,8 @@ export default function Cadastro({
       <Modal
         animationType="fade"
         transparent={true}
-        visible={dropdownAberto}
-        onRequestClose={() => setDropdownAberto(false)}
+        visible={dropdownCatAberto}
+        onRequestClose={() => setDropdownCatAberto(false)}
       >
         <View style={styles.modalFundo}>
           <View style={styles.dropdownModalCaixa}>
@@ -139,7 +147,7 @@ export default function Cadastro({
                     }
                     onPress={() => {
                       setCategoria(item.nome);
-                      setDropdownAberto(false);
+                      setDropdownCatAberto(false);
                     }}
                   >
                     <Text
@@ -161,8 +169,9 @@ export default function Cadastro({
               <Pressable
                 style={styles.botaoGerenciarCategorias}
                 onPress={() => {
-                  setDropdownAberto(false);
-                  navigation.navigate('Categorias');
+                  setDropdownCatAberto(false);
+                  // Abre empilhado via Stack para poder voltar ao formulário!
+                  navigation.navigate('CategoriasStack');
                 }}
               >
                 <Text style={styles.textoBotaoModal}>
@@ -172,7 +181,76 @@ export default function Cadastro({
 
               <Pressable
                 style={styles.botaoFecharDropdown}
-                onPress={() => setDropdownAberto(false)}
+                onPress={() => setDropdownCatAberto(false)}
+              >
+                <Text style={styles.textoFecharDropdown}>Cancelar</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL 3: Lista Suspensa (Dropdown) de Localizações Físicas */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={dropdownLocAberto}
+        onRequestClose={() => setDropdownLocAberto(false)}
+      >
+        <View style={styles.modalFundo}>
+          <View style={styles.dropdownModalCaixa}>
+            <Text style={styles.dropdownTitulo}>Selecione a Localização Física</Text>
+
+            <FlatList
+              data={localizacoes}
+              keyExtractor={(item) => item.id}
+              style={{ width: '100%', maxHeight: 240 }}
+              renderItem={({ item }) => {
+                const selecionado = item.nome === localizacao;
+                return (
+                  <Pressable
+                    style={
+                      selecionado
+                        ? styles.itemDropdownSelecionado
+                        : styles.itemDropdown
+                    }
+                    onPress={() => {
+                      setLocalizacao(item.nome);
+                      setDropdownLocAberto(false);
+                    }}
+                  >
+                    <Text
+                      style={
+                        selecionado
+                          ? styles.textoItemSelecionado
+                          : styles.textoItemDropdown
+                      }
+                    >
+                      {selecionado ? '✔  ' : '📍  '}
+                      {item.nome}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+            />
+
+            <View style={styles.rodapeDropdown}>
+              <Pressable
+                style={styles.botaoGerenciarLocais}
+                onPress={() => {
+                  setDropdownLocAberto(false);
+                  // Abre empilhado via Stack para poder voltar ao formulário!
+                  navigation.navigate('LocalizacoesStack');
+                }}
+              >
+                <Text style={styles.textoBotaoModal}>
+                  + Gerenciar / Criar Localizações
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.botaoFecharDropdown}
+                onPress={() => setDropdownLocAberto(false)}
               >
                 <Text style={styles.textoFecharDropdown}>Cancelar</Text>
               </Pressable>
@@ -201,12 +279,23 @@ export default function Cadastro({
           <Text style={styles.label}>CATEGORIA *</Text>
           <Pressable
             style={styles.dropdownCaixa}
-            onPress={() => setDropdownAberto(true)}
+            onPress={() => setDropdownCatAberto(true)}
           >
             <Text style={styles.dropdownTextoSelecionado}>
               📂  {categoria !== '' ? categoria : 'Selecione uma categoria...'}
             </Text>
             <Text style={styles.dropdownSeta}>▼</Text>
+          </Pressable>
+
+          <Text style={styles.label}>LOCALIZAÇÃO FÍSICA *</Text>
+          <Pressable
+            style={styles.dropdownCaixaLocal}
+            onPress={() => setDropdownLocAberto(true)}
+          >
+            <Text style={styles.dropdownTextoLocal}>
+              📍  {localizacao !== '' ? localizacao : 'Selecione uma localização...'}
+            </Text>
+            <Text style={styles.dropdownSetaLocal}>▼</Text>
           </Pressable>
 
           <Text style={styles.label}>DESCRIÇÃO / OBSERVAÇÕES</Text>
@@ -216,15 +305,6 @@ export default function Cadastro({
             placeholderTextColor="#94A3B8"
             value={descricao}
             onChangeText={setDescricao}
-          />
-
-          <Text style={styles.label}>LOCALIZAÇÃO FÍSICA *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ex: Armário 1 - Gaveta A"
-            placeholderTextColor="#94A3B8"
-            value={localizacao}
-            onChangeText={setLocalizacao}
           />
 
           <Text style={styles.label}>
@@ -312,6 +392,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   dropdownSeta: { fontSize: 12, color: '#4F46E5' },
+  dropdownCaixaLocal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    borderRadius: 10,
+  },
+  dropdownTextoLocal: {
+    fontSize: 14,
+    color: '#0369A1',
+    fontWeight: 'bold',
+  },
+  dropdownSetaLocal: { fontSize: 12, color: '#0284C7' },
   inputDesativado: {
     backgroundColor: '#E2E8F0',
     borderColor: '#CBD5E1',
@@ -377,6 +475,15 @@ const styles = StyleSheet.create({
   rodapeDropdown: { width: '100%', marginTop: 16, alignItems: 'center' },
   botaoGerenciarCategorias: {
     backgroundColor: '#10B981',
+    paddingVertical: 11,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  botaoGerenciarLocais: {
+    backgroundColor: '#0EA5E9',
     paddingVertical: 11,
     paddingHorizontal: 18,
     borderRadius: 10,
