@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -10,14 +10,11 @@ import {
   Vibration,
 } from 'react-native';
 import { crudListaStyles as styles } from '../styles';
+import { supabase } from '../App'; // Ou import { supabase } from '../App' dependendo da sua estrutura
 
-export default function Categorias({
-  categorias,
-  materiais,
-  adicionarCategoria,
-  editarCategoria,
-  removerCategoria,
-}) {
+export default function Categorias() {
+  const [categorias, setCategorias] = useState([]);
+  const [materiais, setMateriais] = useState([]);
   const [busca, setBusca] = useState('');
 
   const [modalCriarVisible, setModalCriarVisible] = useState(false);
@@ -34,6 +31,52 @@ export default function Categorias({
 
   const [modalExcluirVisible, setModalExcluirVisible] = useState(false);
 
+  // --- BUSCAR DADOS DO SUPABASE ---
+  const carregarDadosDoBanco = async () => {
+    try {
+      // 1. Busca as categorias da tabela GM_Categorias
+      const { data: catData, error: erroCat } = await supabase
+        .from('GM_Categorias')
+        .select('*');
+
+      if (erroCat) {
+        console.log('Erro ao buscar categorias:', erroCat.message);
+      } else {
+        // Mapeia respeitando as letras maiúsculas/minúsculas do banco (IdCategoria e NmCategoria)
+        const categoriasFormatadas = catData.map((cat) => ({
+          id: String(cat.IdCategoria),
+          nome: cat.NmCategoria,
+        }));
+        console.log(categoriasFormatadas)
+        setCategorias(categoriasFormatadas);
+      }
+
+      // 2. Busca os materiais para calcular o contador de itens vinculados
+      const { data: matsData, error: erroMats } = await supabase
+        .from('GM_Materiais')
+        .select(`
+          IdMaterial,
+          NmMaterial,
+          GM_Categorias ( NmCategoria )
+        `);
+
+      if (!erroMats) {
+        const matsFormatados = matsData.map((m) => ({
+          id: String(m.IdMaterial),
+          nome: m.NmMaterial,
+          categoria: m.GM_Categorias?.NmCategoria || 'Geral',
+        }));
+        setMateriais(matsFormatados);
+      }
+    } catch (err) {
+      console.log('Erro na conexão com o Supabase:', err);
+    }
+  };
+
+  useEffect(() => {
+    carregarDadosDoBanco();
+  }, []);
+
   const mostrarAvisoErro = (msg) => {
     Vibration.vibrate(400);
     setMensagemAviso(msg);
@@ -46,7 +89,8 @@ export default function Categorias({
     setModalCriarVisible(true);
   };
 
-  const confirmarCriacaoCategoria = () => {
+  // --- CRIAR CATEGORIA NO SUPABASE ---
+  const confirmarCriacaoCategoria = async () => {
     const nomeLimpo = novaCategoria.trim();
     if (nomeLimpo === '') {
       Vibration.vibrate(400);
@@ -63,9 +107,18 @@ export default function Categorias({
       return;
     }
 
-    adicionarCategoria(nomeLimpo);
+    const { error } = await supabase
+      .from('GM_Categorias')
+      .insert([{ NmCategoria: nomeLimpo }]);
+
+    if (error) {
+      mostrarAvisoErro('Erro ao salvar categoria: ' + error.message);
+      return;
+    }
+
     setModalCriarVisible(false);
     setNovaCategoria('');
+    carregarDadosDoBanco();
   };
 
   const abrirModalEdicao = (cat) => {
@@ -75,7 +128,8 @@ export default function Categorias({
     setModalEditarVisible(true);
   };
 
-  const salvarEdicaoCategoria = () => {
+  // --- EDITAR CATEGORIA NO SUPABASE ---
+  const salvarEdicaoCategoria = async () => {
     const nomeLimpo = novoNomeEdicao.trim();
     if (nomeLimpo === '') {
       Vibration.vibrate(400);
@@ -94,13 +148,19 @@ export default function Categorias({
       return;
     }
 
-    editarCategoria(
-      categoriaSelecionada.id,
-      categoriaSelecionada.nome,
-      nomeLimpo
-    );
+    const { error } = await supabase
+      .from('GM_Categorias')
+      .update({ NmCategoria: nomeLimpo })
+      .eq('IdCategoria', categoriaSelecionada.id);
+
+    if (error) {
+      mostrarAvisoErro('Erro ao atualizar categoria: ' + error.message);
+      return;
+    }
+
     setModalEditarVisible(false);
     setCategoriaSelecionada(null);
+    carregarDadosDoBanco();
   };
 
   const tentarExcluirCategoria = (cat) => {
@@ -119,15 +179,24 @@ export default function Categorias({
     setModalExcluirVisible(true);
   };
 
-  const confirmarExclusao = () => {
+  // --- EXCLUIR CATEGORIA NO SUPABASE ---
+  const confirmarExclusao = async () => {
     if (categoriaSelecionada) {
-      removerCategoria(categoriaSelecionada.id);
+      const { error } = await supabase
+        .from('GM_Categorias')
+        .delete()
+        .eq('IdCategoria', categoriaSelecionada.id);
+
+      if (error) {
+        mostrarAvisoErro('Erro ao excluir categoria: ' + error.message);
+      } else {
+        carregarDadosDoBanco();
+      }
     }
     setModalExcluirVisible(false);
     setCategoriaSelecionada(null);
   };
 
-  // Filtra as categorias pelo texto digitado na busca
   const categoriasFiltradas = (categorias || []).filter((cat) =>
     cat.nome.toLowerCase().includes(busca.toLowerCase())
   );
@@ -145,7 +214,7 @@ export default function Categorias({
             <Text style={styles.modalTitulo}>Nova Categoria</Text>
             <TextInput
               style={styles.inputModal}
-              placeholder="Ex: Mapas e Cartografia"
+              placeholder="Ex: Medicamentos"
               placeholderTextColor="#94A3B8"
               value={novaCategoria}
               onChangeText={(texto) => {

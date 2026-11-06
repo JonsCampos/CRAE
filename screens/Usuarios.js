@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -11,14 +11,10 @@ import {
 } from 'react-native';
 import base64 from 'react-native-base64';
 import { crudListaStyles as styles } from '../styles';
+import { supabase } from '../App';
 
-export default function Usuarios({
-  usuarios,
-  usuarioAtual,
-  adicionarUsuario,
-  editarUsuario,
-  removerUsuario,
-}) {
+export default function Usuarios({ usuarioAtual }) {
+  const [usuarios, setUsuarios] = useState([]);
   const [busca, setBusca] = useState('');
 
   // Estados do Modal de Criar Usuário
@@ -43,6 +39,32 @@ export default function Usuarios({
 
   const regexUsuario = /^\w{3,}$/;
 
+  // --- BUSCAR DADOS DO SUPABASE ---
+  const carregarUsuariosDoBanco = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('GM_Usuarios')
+        .select('*');
+
+      if (error) {
+        console.log('Erro ao buscar usuários:', error.message);
+      } else if (data) {
+        const usuariosFormatados = data.map((u) => ({
+          id: String(u.IdUsuario || u.id),
+          login: u.NmUsuario || u.login,
+          senha: u.Senha || u.senha,
+        }));
+        setUsuarios(usuariosFormatados);
+      }
+    } catch (err) {
+      console.log('Erro na conexão com o Supabase:', err);
+    }
+  };
+
+  useEffect(() => {
+    carregarUsuariosDoBanco();
+  }, []);
+
   const mostrarAvisoErro = (msg) => {
     Vibration.vibrate(400);
     setMensagemAviso(msg);
@@ -58,7 +80,7 @@ export default function Usuarios({
     setModalCriarVisible(true);
   };
 
-  const confirmarCriacaoUsuario = () => {
+  const confirmarCriacaoUsuario = async () => {
     const loginLimpo = novoLogin.trim().toLowerCase();
     const senhaLimpa = novaSenha.trim();
 
@@ -83,13 +105,23 @@ export default function Usuarios({
       return;
     }
 
-    adicionarUsuario({
-      login: loginLimpo,
-      senha: base64.encode(senhaLimpa),
-      nivel: novoNivel,
-    });
+    const { error } = await supabase
+      .from('GM_Usuarios')
+      .insert([
+        {
+          NmUsuario: loginLimpo,
+          Senha: base64.encode(senhaLimpa),
+          Nivel: novoNivel,
+        },
+      ]);
+
+    if (error) {
+      mostrarAvisoErro('Erro ao cadastrar usuário: ' + error.message);
+      return;
+    }
 
     setModalCriarVisible(false);
+    carregarUsuariosDoBanco();
   };
 
   // UPDATE
@@ -102,7 +134,7 @@ export default function Usuarios({
     setModalEditarVisible(true);
   };
 
-  const salvarEdicaoUsuario = () => {
+  const salvarEdicaoUsuario = async () => {
     const loginLimpo = loginEdicao.trim().toLowerCase();
     const senhaLimpa = senhaEdicao.trim();
 
@@ -142,15 +174,23 @@ export default function Usuarios({
     const senhaFinal =
       senhaLimpa !== '' ? base64.encode(senhaLimpa) : usuarioSelecionado.senha;
 
-    editarUsuario({
-      id: usuarioSelecionado.id,
-      login: loginLimpo,
-      senha: senhaFinal,
-      nivel: nivelEdicao,
-    });
+    const { error } = await supabase
+      .from('GM_Usuarios')
+      .update({
+        NmUsuario: loginLimpo,
+        Senha: senhaFinal,
+        Nivel: nivelEdicao,
+      })
+      .eq('IdUsuario', usuarioSelecionado.id);
+
+    if (error) {
+      mostrarAvisoErro('Erro ao atualizar usuário: ' + error.message);
+      return;
+    }
 
     setModalEditarVisible(false);
     setUsuarioSelecionado(null);
+    carregarUsuariosDoBanco();
   };
 
   // DELETE
@@ -170,23 +210,31 @@ export default function Usuarios({
     setModalExcluirVisible(true);
   };
 
-  const confirmarExclusao = () => {
+  const confirmarExclusao = async () => {
     if (usuarioSelecionado) {
-      removerUsuario(usuarioSelecionado.id);
+      const { error } = await supabase
+        .from('GM_Usuarios')
+        .delete()
+        .eq('IdUsuario', usuarioSelecionado.id);
+
+      if (error) {
+        mostrarAvisoErro('Erro ao excluir usuário: ' + error.message);
+      } else {
+        carregarUsuariosDoBanco();
+      }
     }
     setModalExcluirVisible(false);
     setUsuarioSelecionado(null);
   };
 
-  // 1. Filtra os usuários pelo login ou pelo nível digitado na busca
-  const termo = busca.toLowerCase();
+  // Filtros e Listagem por Seção
+  const termo = (busca || '').toLowerCase();
   const usuariosFiltrados = (usuarios || []).filter((u) => {
     const login = (u.login || '').toLowerCase();
     const nivelTexto = u.nivel === 'admin' ? 'administrador admin' : 'normal';
     return login.includes(termo) || nivelTexto.includes(termo);
   });
 
-  // 2. Separa em 2 grupos para a SectionList (Admin sempre primeiro!)
   const listaAdmins = usuariosFiltrados.filter((u) => u.nivel === 'admin');
   const listaNormais = usuariosFiltrados.filter((u) => u.nivel !== 'admin');
 

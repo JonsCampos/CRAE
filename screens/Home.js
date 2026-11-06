@@ -36,11 +36,11 @@ export default function Home({ navigation, removerMaterial }) {
       const { data, error } = await supabase
         .from('GM_Materiais')
         .select(`
-          idMaterial,
+          IdMaterial,
           NmMaterial,
           DscMaterial,
           QtdMaterial,
-          GM_Categorias ( nmCategoria ),
+          GM_Categorias ( NmCategoria ),
           GM_LOCAIS ( NmLocal )
         `);
 
@@ -51,11 +51,11 @@ export default function Home({ navigation, removerMaterial }) {
 
       // Mapeamos para o formato que os seus cards e filtros já utilizam na tela
       const dadosFormatados = data.map((item) => ({
-        id: String(item.idMaterial),
+        id: String(item.IdMaterial),
         nome: item.NmMaterial,
         descricao: item.DscMaterial,
         quantidade: item.QtdMaterial,
-        categoria: item.GM_Categorias?.nmCategoria || 'Geral',
+        categoria: item.GM_Categorias?.NmCategoria || 'Geral',
         localizacao: item.GM_LOCAIS?.NmLocal || 'Sem Local',
       }));
 
@@ -115,7 +115,7 @@ export default function Home({ navigation, removerMaterial }) {
     const { error } = await supabase
       .from('GM_Materiais')
       .update({ QtdMaterial: novoSaldo })
-      .eq('idMaterial', itemSelecionado.id);
+      .eq('IdMaterial', itemSelecionado.id);
 
     if (error) {
       console.log('Erro ao atualizar estoque:', error.message);
@@ -136,7 +136,7 @@ export default function Home({ navigation, removerMaterial }) {
       const { error } = await supabase
         .from('GM_Materiais')
         .delete()
-        .eq('idMaterial', itemSelecionado.id);
+        .eq('IdMaterial', itemSelecionado.id);
 
       if (!error) {
         carregarMateriaisDoSupabase(); // Atualiza a lista após excluir
