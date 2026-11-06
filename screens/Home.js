@@ -127,6 +127,8 @@ export default function Home({ navigation }) {
 
     if (error) {
       console.log('Erro ao atualizar estoque:', error.message);
+      Vibration.vibrate(400);
+      setErroEstoque('Erro ao atualizar no banco: ' + error.message);
       return;
     }
 

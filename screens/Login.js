@@ -28,8 +28,8 @@ export default function Login({ aoLogar }) {
   };
 
   const realizarLogin = async () => {
-
-    if (usr === '' || pwd === '') {
+    const usrLimpo = usr.trim();
+    if (usrLimpo === '' || pwd === '') {
       exibirModalErro('Informe seu usuário e senha para acessar o acervo.');
       return;
     }
@@ -38,11 +38,10 @@ export default function Login({ aoLogar }) {
     const senhaDigitadaCripto = base64.encode(pwd);
 
     try {
-      // Consulta diretamente no Supabase pelo login digitado
       const { data, error } = await supabase
         .from('GM_Usuarios')
         .select('*')
-        .ilike('NmUsuario', usr) // .ilike busca ignorando maiúsculas/minúsculas de forma segura
+        .ilike('NmUsuario', usrLimpo)
         .maybeSingle();
 
       setCarregando(false);
