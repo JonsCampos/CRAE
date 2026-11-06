@@ -18,6 +18,8 @@ export default function Localizacoes({
   editarLocalizacao,
   removerLocalizacao,
 }) {
+  const [busca, setBusca] = useState('');
+
   const [modalCriarVisible, setModalCriarVisible] = useState(false);
   const [novaLocalizacao, setNovaLocalizacao] = useState('');
   const [erroCriar, setErroCriar] = useState('');
@@ -124,6 +126,11 @@ export default function Localizacoes({
     setModalExcluirVisible(false);
     setLocalSelecionado(null);
   };
+
+  // Filtra as localizações pelo texto digitado na busca
+  const localizacoesFiltradas = (localizacoes || []).filter((loc) =>
+    loc.nome.toLowerCase().includes(busca.toLowerCase())
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -261,20 +268,28 @@ export default function Localizacoes({
       </Modal>
 
       <Pressable style={styles.botaoNovoLocal} onPress={abrirModalCriar}>
-        <Text style={styles.textoBotaoNovo}>+ Criar Nova Localização Física</Text>
+        <Text style={styles.textoBotaoNovo}>+ Novo Local</Text>
       </Pressable>
 
+      <TextInput
+        style={styles.inputBusca}
+        placeholder="Buscar localização pelo nome..."
+        placeholderTextColor="#64748B"
+        value={busca}
+        onChangeText={setBusca}
+      />
+
       <Text style={styles.subtituloLista}>
-        LOCALIZAÇÕES CADASTRADAS ({localizacoes.length})
+        LOCALIZAÇÕES CADASTRADAS ({localizacoesFiltradas.length})
       </Text>
 
       <FlatList
-        data={localizacoes}
+        data={localizacoesFiltradas}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <Text style={{ textAlign: 'center', color: '#94A3B8', marginTop: 20 }}>
-            Nenhuma localização cadastrada.
+            Nenhuma localização encontrada.
           </Text>
         }
         renderItem={({ item }) => {

@@ -71,7 +71,7 @@ export default function Cadastro({
       localizacao.trim() === '' ||
       (!itemExistente && quantidade.trim() === '')
     ) {
-      Vibration.vibrate(400);
+      Vibration.vibrate(400); // Erro de campos vazios: vibra!
       setMensagemModal(
         'Preencha todos os campos obrigatórios (*). Se não houver Categoria ou Localização, crie uma clicando no menu suspenso.'
       );
@@ -91,7 +91,7 @@ export default function Cadastro({
       editarMaterial(itemAtualizado);
     } else {
       if (!regexDigitos.test(quantidade.trim())) {
-        Vibration.vibrate(400);
+        Vibration.vibrate(400); // Erro de quantidade inválida: vibra!
         setMensagemModal(
           'A quantidade inicial deve conter apenas dígitos numéricos (>= 0).'
         );

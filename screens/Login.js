@@ -9,12 +9,10 @@ import {
   Pressable,
   Vibration,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import base64 from 'react-native-base64';
 import { loginStyles as styles } from '../styles';
 
-export default function Login({ route }) {
-  const [x, setX] = useState(1);
+export default function Login({ usuarios, aoLogar }) {
   const [usr, setUsr] = useState('');
   const [pwd, setPwd] = useState('');
   const [carregando, setCarregando] = useState(false);
@@ -22,69 +20,34 @@ export default function Login({ route }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [mensagemModal, setMensagemModal] = useState('');
 
-  const exibirModal = (texto, isErro = true) => {
-    if (isErro) {
-      Vibration.vibrate(400);
-    }
+  const exibirModalErro = (texto) => {
+    Vibration.vibrate(400); // Garante a vibração no erro de login
     setMensagemModal(texto);
     setModalVisible(true);
   };
 
-  const alternarModo = (novoModo) => {
-    setUsr('');
-    setPwd('');
-    setX(novoModo);
-  };
-
-  const regexUsuario = /^\w{3,}$/;
-
-  const _storeData = async (usuario, senha) => {
-    const userLimpo = usuario.trim();
-    if (userLimpo === '' || senha.trim() === '') {
-      exibirModal('Por favor, preencha o usuário e a senha para criar sua conta.', true);
-      return;
-    }
-    if (!regexUsuario.test(userLimpo)) {
-      exibirModal('O usuário deve ter pelo menos 3 caracteres alfanuméricos (sem espaços).', true);
+  const realizarLogin = () => {
+    const userLimpo = usr.trim().toLowerCase();
+    if (userLimpo === '' || pwd.trim() === '') {
+      exibirModalErro('Informe seu usuário e senha para acessar o acervo.');
       return;
     }
 
-    try {
-      setCarregando(true);
-      let senhaCriptografada = base64.encode(senha);
-      await AsyncStorage.setItem(`@user_${userLimpo.toLowerCase()}`, senhaCriptografada);
-      setCarregando(false);
-      alternarModo(1);
-      exibirModal('Conta criada com sucesso! Faça seu login para continuar.', false);
-    } catch (error) {
-      setCarregando(false);
-      exibirModal('Erro ao salvar usuário: ' + error.message, true);
-    }
-  };
+    setCarregando(true);
+    const senhaDigitadaCripto = base64.encode(pwd);
 
-  const _retrieveData = async (usuario, senha) => {
-    const userLimpo = usuario.trim();
-    if (userLimpo === '' || senha.trim() === '') {
-      exibirModal('Informe seu usuário e senha para acessar o acervo.', true);
-      return;
-    }
-    try {
-      setCarregando(true);
-      const senhaSalva = await AsyncStorage.getItem(`@user_${userLimpo.toLowerCase()}`);
-      let senhaDigitadaCripto = base64.encode(senha);
-      setCarregando(false);
+    const usuarioEncontrado = (usuarios || []).find(
+      (u) =>
+        u.login.toLowerCase() === userLimpo &&
+        u.senha === senhaDigitadaCripto
+    );
 
-      if (
-        (senhaSalva !== null && senhaSalva === senhaDigitadaCripto) ||
-        (userLimpo.toLowerCase() === 'luna' && senha === '123')
-      ) {
-        route.params.funcLogar(true);
-      } else {
-        exibirModal('Credenciais inválidas! Verifique seu usuário e senha.', true);
-      }
-    } catch (error) {
-      setCarregando(false);
-      exibirModal('Erro ao ler dados: ' + error.message, true);
+    setCarregando(false);
+
+    if (usuarioEncontrado) {
+      aoLogar(usuarioEncontrado);
+    } else {
+      exibirModalErro('Credenciais inválidas! Verifique seu usuário e senha.');
     }
   };
 
@@ -112,9 +75,7 @@ export default function Login({ route }) {
       <View style={styles.card}>
         <Text style={styles.titulo}>Acervo e Inventário</Text>
         <Text style={styles.subtitulo}>
-          {x === 1
-            ? 'Gestão de Materiais - Dra. Luna Ribeiro'
-            : 'Criar Nova Credencial de Acesso'}
+          Gestão de Materiais - Dra. Luna Ribeiro
         </Text>
 
         <Text style={styles.label}>USUÁRIO / MATRÍCULA</Text>
@@ -139,50 +100,10 @@ export default function Login({ route }) {
 
         {carregando ? (
           <ActivityIndicator size="large" color="#4F46E5" animating={true} />
-        ) : x === 1 ? (
-          <>
-            <Pressable
-              style={styles.botaoPrimario}
-              onPress={() => _retrieveData(usr, pwd)}
-            >
-              <Text style={styles.textoBotaoPrimario}>Entrar no Sistema</Text>
-            </Pressable>
-
-            <View style={styles.divisorLinha}>
-              <View style={styles.traco} />
-              <Text style={styles.divisorTexto}>ou</Text>
-              <View style={styles.traco} />
-            </View>
-
-            <Pressable
-              style={styles.botaoSecundario}
-              onPress={() => alternarModo(2)}
-            >
-              <Text style={styles.textoBotaoSecundario}>Criar nova conta</Text>
-            </Pressable>
-          </>
         ) : (
-          <>
-            <Pressable
-              style={styles.botaoSucesso}
-              onPress={() => _storeData(usr, pwd)}
-            >
-              <Text style={styles.textoBotaoPrimario}>Confirmar Cadastro</Text>
-            </Pressable>
-
-            <View style={styles.divisorLinha}>
-              <View style={styles.traco} />
-              <Text style={styles.divisorTexto}>ou</Text>
-              <View style={styles.traco} />
-            </View>
-
-            <Pressable
-              style={styles.botaoSecundario}
-              onPress={() => alternarModo(1)}
-            >
-              <Text style={styles.textoBotaoSecundario}>Voltar para o Login</Text>
-            </Pressable>
-          </>
+          <Pressable style={styles.botaoPrimario} onPress={realizarLogin}>
+            <Text style={styles.textoBotaoPrimario}>Entrar no Sistema</Text>
+          </Pressable>
         )}
       </View>
     </SafeAreaView>

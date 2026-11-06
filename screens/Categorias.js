@@ -18,6 +18,8 @@ export default function Categorias({
   editarCategoria,
   removerCategoria,
 }) {
+  const [busca, setBusca] = useState('');
+
   const [modalCriarVisible, setModalCriarVisible] = useState(false);
   const [novaCategoria, setNovaCategoria] = useState('');
   const [erroCriar, setErroCriar] = useState('');
@@ -124,6 +126,11 @@ export default function Categorias({
     setModalExcluirVisible(false);
     setCategoriaSelecionada(null);
   };
+
+  // Filtra as categorias pelo texto digitado na busca
+  const categoriasFiltradas = (categorias || []).filter((cat) =>
+    cat.nome.toLowerCase().includes(busca.toLowerCase())
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -261,20 +268,28 @@ export default function Categorias({
       </Modal>
 
       <Pressable style={styles.botaoNovaCategoria} onPress={abrirModalCriar}>
-        <Text style={styles.textoBotaoNovo}>+ Criar Nova Categoria</Text>
+        <Text style={styles.textoBotaoNovo}>+ Nova Categoria</Text>
       </Pressable>
 
+      <TextInput
+        style={styles.inputBusca}
+        placeholder="Buscar categoria pelo nome..."
+        placeholderTextColor="#64748B"
+        value={busca}
+        onChangeText={setBusca}
+      />
+
       <Text style={styles.subtituloLista}>
-        CATEGORIAS ATIVAS ({categorias.length})
+        CATEGORIAS ATIVAS ({categoriasFiltradas.length})
       </Text>
 
       <FlatList
-        data={categorias}
+        data={categoriasFiltradas}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <Text style={{ textAlign: 'center', color: '#94A3B8', marginTop: 20 }}>
-            Nenhuma categoria cadastrada.
+            Nenhuma categoria encontrada.
           </Text>
         }
         renderItem={({ item }) => {

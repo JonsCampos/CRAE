@@ -46,14 +46,14 @@ export default function Home({
 
   const confirmarMovimentacao = (tipo) => {
     if (!regexApenasNumeros.test(qtdMovimentacao.trim())) {
-      Vibration.vibrate(400);
+      Vibration.vibrate(400); // Erro: vibra!
       setErroEstoque('Digite apenas números inteiros válidos.');
       return;
     }
 
     const valor = parseInt(qtdMovimentacao.trim(), 10);
     if (valor <= 0) {
-      Vibration.vibrate(400);
+      Vibration.vibrate(400); // Erro: vibra!
       setErroEstoque('A quantidade deve ser maior que zero.');
       return;
     }
@@ -64,7 +64,7 @@ export default function Home({
       setModalEstoqueVisible(false);
     } else if (tipo === 'saida') {
       if (valor > itemSelecionado.quantidade) {
-        Vibration.vibrate(400);
+        Vibration.vibrate(400); // Erro de estoque insuficiente: vibra!
         setErroEstoque(
           `Saldo insuficiente! Tentou retirar ${valor}, mas só há ${itemSelecionado.quantidade} em estoque.`
         );
