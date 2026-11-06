@@ -8,9 +8,9 @@ import {
   FlatList,
   Modal,
   Pressable,
-  StyleSheet,
   Vibration,
 } from 'react-native';
+import { cadastroStyles as styles, inputBloqueadoStyle } from '../styles';
 
 export default function Cadastro({
   route,
@@ -47,9 +47,11 @@ export default function Cadastro({
   const [modalVisible, setModalVisible] = useState(false);
   const [mensagemModal, setMensagemModal] = useState('');
 
-  // Estados dos Menus Suspensos (Dropdowns)
   const [dropdownCatAberto, setDropdownCatAberto] = useState(false);
   const [dropdownLocAberto, setDropdownLocAberto] = useState(false);
+
+  // Regex do slide regex.pptx: valida se contém apenas dígitos (\d+)
+  const regexDigitos = /^\d+$/;
 
   const salvarFormulario = () => {
     if (
@@ -75,15 +77,15 @@ export default function Cadastro({
       Vibration.vibrate(300);
       editarMaterial(itemAtualizado);
     } else {
-      const qtdNumerica = parseInt(quantidade, 10);
-      if (isNaN(qtdNumerica) || qtdNumerica < 0) {
+      if (!regexDigitos.test(quantidade.trim())) {
         setMensagemModal(
-          'A quantidade inicial não pode ser negativa ou inválida.'
+          'A quantidade inicial deve conter apenas dígitos numéricos (>= 0).'
         );
         setModalVisible(true);
         return;
       }
 
+      const qtdNumerica = parseInt(quantidade.trim(), 10);
       const novoItem = {
         id: Date.now().toString(),
         nome: nome.trim(),
@@ -121,7 +123,7 @@ export default function Cadastro({
         </View>
       </Modal>
 
-      {/* MODAL 2: Lista Suspensa (Dropdown) de Categorias */}
+      {/* MODAL 2: Lista Suspensa de Categorias */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -170,7 +172,6 @@ export default function Cadastro({
                 style={styles.botaoGerenciarCategorias}
                 onPress={() => {
                   setDropdownCatAberto(false);
-                  // Abre empilhado via Stack para poder voltar ao formulário!
                   navigation.navigate('CategoriasStack');
                 }}
               >
@@ -190,7 +191,7 @@ export default function Cadastro({
         </View>
       </Modal>
 
-      {/* MODAL 3: Lista Suspensa (Dropdown) de Localizações Físicas */}
+      {/* MODAL 3: Lista Suspensa de Localizações Físicas */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -239,7 +240,6 @@ export default function Cadastro({
                 style={styles.botaoGerenciarLocais}
                 onPress={() => {
                   setDropdownLocAberto(false);
-                  // Abre empilhado via Stack para poder voltar ao formulário!
                   navigation.navigate('LocalizacoesStack');
                 }}
               >
@@ -340,175 +340,3 @@ export default function Cadastro({
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC', padding: 16 },
-  card: {
-    backgroundColor: '#FFFFFF',
-    padding: 22,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  tituloForm: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#475569',
-    marginBottom: 6,
-    letterSpacing: 0.5,
-  },
-  input: {
-    fontSize: 14,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 16,
-    borderRadius: 10,
-    color: '#0F172A',
-  },
-  dropdownCaixa: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#EEF2FF',
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    marginBottom: 16,
-    borderRadius: 10,
-  },
-  dropdownTextoSelecionado: {
-    fontSize: 14,
-    color: '#3730A3',
-    fontWeight: 'bold',
-  },
-  dropdownSeta: { fontSize: 12, color: '#4F46E5' },
-  dropdownCaixaLocal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F0F9FF',
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    marginBottom: 16,
-    borderRadius: 10,
-  },
-  dropdownTextoLocal: {
-    fontSize: 14,
-    color: '#0369A1',
-    fontWeight: 'bold',
-  },
-  dropdownSetaLocal: { fontSize: 12, color: '#0284C7' },
-  inputDesativado: {
-    backgroundColor: '#E2E8F0',
-    borderColor: '#CBD5E1',
-    color: '#64748B',
-    marginBottom: 8,
-  },
-  textoAviso: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 18,
-    lineHeight: 18,
-  },
-  botaoSalvar: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  textoBotaoSalvar: { color: '#FFFFFF', fontSize: 15, fontWeight: 'bold' },
-  modalFundo: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-  },
-  modalCaixa: {
-    width: '84%',
-    backgroundColor: '#FFFFFF',
-    padding: 22,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  dropdownModalCaixa: {
-    width: '88%',
-    backgroundColor: '#FFFFFF',
-    padding: 22,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  dropdownTitulo: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    marginBottom: 14,
-  },
-  itemDropdown: {
-    paddingVertical: 13,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    borderRadius: 8,
-  },
-  itemDropdownSelecionado: {
-    paddingVertical: 13,
-    paddingHorizontal: 12,
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    marginBottom: 2,
-  },
-  textoItemDropdown: { fontSize: 14, color: '#334155' },
-  textoItemSelecionado: { fontSize: 14, color: '#4F46E5', fontWeight: 'bold' },
-  rodapeDropdown: { width: '100%', marginTop: 16, alignItems: 'center' },
-  botaoGerenciarCategorias: {
-    backgroundColor: '#10B981',
-    paddingVertical: 11,
-    paddingHorizontal: 18,
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  botaoGerenciarLocais: {
-    backgroundColor: '#0EA5E9',
-    paddingVertical: 11,
-    paddingHorizontal: 18,
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  botaoFecharDropdown: { padding: 6 },
-  textoFecharDropdown: { color: '#64748B', fontWeight: 'bold', fontSize: 13 },
-  modalTexto: {
-    fontSize: 15,
-    color: '#334155',
-    textAlign: 'center',
-    marginBottom: 18,
-  },
-  botaoModal: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 11,
-    paddingHorizontal: 28,
-    borderRadius: 10,
-  },
-  textoBotaoModal: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 14 },
-});
-
-const inputBloqueadoStyle = StyleSheet.compose(
-  styles.input,
-  styles.inputDesativado
-);

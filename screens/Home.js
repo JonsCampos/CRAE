@@ -8,10 +8,10 @@ import {
   SectionList,
   Modal,
   Pressable,
-  StyleSheet,
   Linking,
   Vibration,
 } from 'react-native';
+import { homeStyles as styles, cardEsgotadoStyle } from '../styles';
 
 export default function Home({
   navigation,
@@ -20,7 +20,8 @@ export default function Home({
   removerMaterial,
 }) {
   const [busca, setBusca] = useState('');
-  const [agruparPorCategoria, setAgruparPorCategoria] = useState(true);
+  // 'categoria' (SectionList) | 'local' (SectionList) | 'geral' (FlatList)
+  const [modoVisao, setModoVisao] = useState('categoria');
 
   const [modalExcluirVisible, setModalExcluirVisible] = useState(false);
   const [itemSelecionado, setItemSelecionado] = useState(null);
@@ -28,6 +29,9 @@ export default function Home({
   const [modalEstoqueVisible, setModalEstoqueVisible] = useState(false);
   const [qtdMovimentacao, setQtdMovimentacao] = useState('');
   const [erroEstoque, setErroEstoque] = useState('');
+
+  // Regex para validar apenas dígitos numéricos na movimentação (\d+ do slide regex.pptx)
+  const regexApenasNumeros = /^\d+$/;
 
   const compartilharWhatsApp = (item) => {
     const categoriaTexto = item.categoria ? item.categoria : 'Geral';
@@ -43,10 +47,14 @@ export default function Home({
   };
 
   const confirmarMovimentacao = (tipo) => {
-    const valor = parseInt(qtdMovimentacao, 10);
+    if (!regexApenasNumeros.test(qtdMovimentacao.trim())) {
+      setErroEstoque('Digite apenas números inteiros válidos.');
+      return;
+    }
 
-    if (isNaN(valor) || valor <= 0) {
-      setErroEstoque('Digite uma quantidade válida maior que zero.');
+    const valor = parseInt(qtdMovimentacao.trim(), 10);
+    if (valor <= 0) {
+      setErroEstoque('A quantidade deve ser maior que zero.');
       return;
     }
 
@@ -93,13 +101,18 @@ export default function Home({
     return nome.includes(termo) || local.includes(termo) || cat.includes(termo);
   });
 
-  const secoesCategorias = [];
+  // Agrupa dinamicamente por Categoria ou por Localização Física para a SectionList
+  const secoesAgrupadas = [];
   materiaisFiltrados.forEach((item) => {
-    const nomeCategoria = item.categoria || 'Geral';
-    let secaoExistente = secoesCategorias.find((s) => s.title === nomeCategoria);
+    const chaveGrupo =
+      modoVisao === 'local'
+        ? item.localizacao || 'Sem Local'
+        : item.categoria || 'Geral';
+
+    let secaoExistente = secoesAgrupadas.find((s) => s.title === chaveGrupo);
     if (!secaoExistente) {
-      secaoExistente = { title: nomeCategoria, data: [] };
-      secoesCategorias.push(secaoExistente);
+      secaoExistente = { title: chaveGrupo, data: [] };
+      secoesAgrupadas.push(secaoExistente);
     }
     secaoExistente.data.push(item);
   });
@@ -122,7 +135,7 @@ export default function Home({
           </View>
         </View>
 
-        {!agruparPorCategoria ? (
+        {modoVisao !== 'categoria' ? (
           <Text style={styles.textoCategoria}>
             🗂️ {item.categoria || 'Geral'}
           </Text>
@@ -132,11 +145,12 @@ export default function Home({
           {item.descricao ? item.descricao : 'Sem descrição cadastrada'}
         </Text>
 
-        <View style={styles.caixaLocal}>
-          <Text style={styles.textoLocal}>📍 {item.localizacao}</Text>
-        </View>
+        {modoVisao !== 'local' ? (
+          <View style={styles.caixaLocal}>
+            <Text style={styles.textoLocal}>📍 {item.localizacao}</Text>
+          </View>
+        ) : null}
 
-        {/* Botão Principal do Card: Entrada e Saída */}
         <Pressable
           style={styles.botaoMovimentar}
           onPress={() => abrirModalEstoque(item)}
@@ -146,7 +160,6 @@ export default function Home({
           </Text>
         </Pressable>
 
-        {/* Linha de Ações Secundárias */}
         <View style={styles.botoesLinha}>
           <Pressable
             style={styles.botaoWhats}
@@ -268,7 +281,6 @@ export default function Home({
         </View>
       </Modal>
 
-      {/* Botão + Novo Material de volta ao topo da Home */}
       <Pressable
         style={styles.botaoNovoMaterialTopo}
         onPress={() => navigation.navigate('Cadastro')}
@@ -276,7 +288,6 @@ export default function Home({
         <Text style={styles.textoBotaoNovoTopo}>+ Novo Material</Text>
       </Pressable>
 
-      {/* Barra de Pesquisa */}
       <TextInput
         style={styles.inputBusca}
         placeholder="🔍 Buscar por nome, categoria ou localização..."
@@ -285,46 +296,65 @@ export default function Home({
         onChangeText={setBusca}
       />
 
-      {/* Seletor de Abas: SectionList vs FlatList */}
+      {/* Seletor de Abas: Por Categoria (SectionList) | Por Local (SectionList) | Geral (FlatList) */}
       <View style={styles.abasContainer}>
         <Pressable
-          style={agruparPorCategoria ? styles.abaAtiva : styles.abaInativa}
-          onPress={() => setAgruparPorCategoria(true)}
+          style={modoVisao === 'categoria' ? styles.abaAtiva : styles.abaInativa}
+          onPress={() => setModoVisao('categoria')}
         >
           <Text
             style={
-              agruparPorCategoria ? styles.textoAbaAtiva : styles.textoAbaInativa
-            }
-          >
-            📂 Por Categoria
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={!agruparPorCategoria ? styles.abaAtiva : styles.abaInativa}
-          onPress={() => setAgruparPorCategoria(false)}
-        >
-          <Text
-            style={
-              !agruparPorCategoria
+              modoVisao === 'categoria'
                 ? styles.textoAbaAtiva
                 : styles.textoAbaInativa
             }
           >
-            📋 Lista Geral
+            📂 Categorias
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={modoVisao === 'local' ? styles.abaAtiva : styles.abaInativa}
+          onPress={() => setModoVisao('local')}
+        >
+          <Text
+            style={
+              modoVisao === 'local'
+                ? styles.textoAbaAtiva
+                : styles.textoAbaInativa
+            }
+          >
+            📍 Por Local
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={modoVisao === 'geral' ? styles.abaAtiva : styles.abaInativa}
+          onPress={() => setModoVisao('geral')}
+        >
+          <Text
+            style={
+              modoVisao === 'geral'
+                ? styles.textoAbaAtiva
+                : styles.textoAbaInativa
+            }
+          >
+            📋 Geral (FlatList)
           </Text>
         </Pressable>
       </View>
 
-      {agruparPorCategoria ? (
+      {modoVisao !== 'geral' ? (
         <SectionList
-          sections={secoesCategorias}
+          sections={secoesAgrupadas}
           keyExtractor={(item, index) => item.id || String(index)}
           renderItem={renderizarCardMaterial}
           showsVerticalScrollIndicator={false}
           renderSectionHeader={({ section: { title, data } }) => (
             <View style={styles.headerCategoriaBox}>
-              <Text style={styles.headerCategoriaTexto}>📂 {title}</Text>
+              <Text style={styles.headerCategoriaTexto}>
+                {modoVisao === 'local' ? `📍 ${title}` : `📂 ${title}`}
+              </Text>
               <Text style={styles.headerCategoriaCount}>{data.length}</Text>
             </View>
           )}
@@ -346,278 +376,3 @@ export default function Home({
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC', padding: 16 },
-  botaoNovoMaterialTopo: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 13,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  textoBotaoNovoTopo: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  inputBusca: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    marginBottom: 12,
-    fontSize: 14,
-    color: '#0F172A',
-  },
-  abasContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#E2E8F0',
-    borderRadius: 10,
-    padding: 4,
-    marginBottom: 14,
-  },
-  abaAtiva: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  abaInativa: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  textoAbaAtiva: { fontSize: 13, fontWeight: 'bold', color: '#4F46E5' },
-  textoAbaInativa: { fontSize: 13, fontWeight: '600', color: '#64748B' },
-  headerCategoriaBox: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#E0E7FF',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    marginTop: 6,
-    marginBottom: 10,
-  },
-  headerCategoriaTexto: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#3730A3',
-  },
-  headerCategoriaCount: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#4F46E5',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  cardItem: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderLeftWidth: 5,
-    borderLeftColor: '#10B981',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  cardAlertaBorda: {
-    borderLeftColor: '#EF4444',
-    backgroundColor: '#FFFBFB',
-  },
-  cabecalhoCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  nomeItem: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    flex: 1,
-    marginRight: 8,
-  },
-  pillEstoque: {
-    backgroundColor: '#D1FAE5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  textoPillEstoque: { fontSize: 12, fontWeight: 'bold', color: '#065F46' },
-  pillEsgotado: {
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  textoPillEsgotado: { fontSize: 11, fontWeight: 'bold', color: '#991B1B' },
-  textoCategoria: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#6366F1',
-    marginBottom: 4,
-  },
-  textoDetalhe: { fontSize: 13, color: '#64748B', marginBottom: 8 },
-  caixaLocal: {
-    backgroundColor: '#F8FAFC',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 12,
-  },
-  textoLocal: { fontSize: 13, fontWeight: '600', color: '#334155' },
-  botaoMovimentar: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 11,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  textoBotaoMovimentar: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 13 },
-  botoesLinha: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  botaoWhats: {
-    flex: 1,
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginRight: 6,
-  },
-  textoBotaoSecundarioCard: {
-    color: '#047857',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  botaoEditar: {
-    flex: 1,
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginRight: 6,
-  },
-  textoBotaoEditarCard: { color: '#B45309', fontWeight: 'bold', fontSize: 12 },
-  botaoExcluir: {
-    flex: 1,
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  textoBotaoExcluirCard: { color: '#DC2626', fontWeight: 'bold', fontSize: 12 },
-  listaVazia: { textAlign: 'center', color: '#94A3B8', marginTop: 30, fontSize: 14 },
-  modalFundo: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-  },
-  modalCaixa: {
-    width: '88%',
-    backgroundColor: '#FFFFFF',
-    padding: 22,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  modalTitulo: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    marginBottom: 6,
-  },
-  modalSubtitulo: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  inputModal: {
-    width: '100%',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 14,
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
-  textoErro: {
-    color: '#DC2626',
-    fontSize: 12,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  modalTexto: {
-    fontSize: 14,
-    color: '#475569',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  botoesLinhaModal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  botaoModalEntrada: {
-    flex: 1,
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  botaoModalSaida: {
-    flex: 1,
-    backgroundColor: '#EF4444',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  botaoModalCancelar: {
-    flex: 1,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  textoBotaoModalBranco: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 14 },
-  textoBotaoCancelar: { color: '#475569', fontWeight: 'bold', fontSize: 14 },
-  botaoFecharModal: { marginTop: 14, padding: 6 },
-  textoFechar: { color: '#64748B', fontWeight: 'bold', fontSize: 13 },
-});
-
-const cardEsgotadoStyle = StyleSheet.compose(
-  styles.cardItem,
-  styles.cardAlertaBorda
-);

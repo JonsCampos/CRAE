@@ -7,10 +7,10 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
-  StyleSheet,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import base64 from 'react-native-base64';
+import { loginStyles as styles } from '../styles';
 
 export default function Login({ route }) {
   const [x, setX] = useState(1); // 1 = Login | 2 = Cadastro (Aula5.txt)
@@ -32,15 +32,24 @@ export default function Login({ route }) {
     setX(novoModo);
   };
 
+  // Validação com Regex (slide regex.pptx): alfanumérico (\w) de pelo menos 3 caracteres
+  const regexUsuario = /^\w{3,}$/;
+
   const _storeData = async (usuario, senha) => {
-    if (usuario.trim() === '' || senha.trim() === '') {
+    const userLimpo = usuario.trim();
+    if (userLimpo === '' || senha.trim() === '') {
       exibirModal('Por favor, preencha o usuário e a senha para criar sua conta.');
       return;
     }
+    if (!regexUsuario.test(userLimpo)) {
+      exibirModal('O usuário deve ter pelo menos 3 caracteres alfanuméricos (sem espaços).');
+      return;
+    }
+
     try {
       setCarregando(true);
       let senhaCriptografada = base64.encode(senha);
-      await AsyncStorage.setItem(usuario.trim(), senhaCriptografada);
+      await AsyncStorage.setItem(userLimpo, senhaCriptografada);
       setCarregando(false);
       alternarModo(1);
       exibirModal('Conta criada com sucesso! Faça seu login para continuar.');
@@ -51,19 +60,20 @@ export default function Login({ route }) {
   };
 
   const _retrieveData = async (usuario, senha) => {
-    if (usuario.trim() === '' || senha.trim() === '') {
+    const userLimpo = usuario.trim();
+    if (userLimpo === '' || senha.trim() === '') {
       exibirModal('Informe seu usuário e senha para acessar o acervo.');
       return;
     }
     try {
       setCarregando(true);
-      const senhaSalva = await AsyncStorage.getItem(usuario.trim());
+      const senhaSalva = await AsyncStorage.getItem(userLimpo);
       let senhaDigitadaCripto = base64.encode(senha);
       setCarregando(false);
 
       if (
         (senhaSalva !== null && senhaSalva === senhaDigitadaCripto) ||
-        (usuario.trim().toLowerCase() === 'luna' && senha === '123')
+        (userLimpo.toLowerCase() === 'luna' && senha === '123')
       ) {
         route.params.funcLogar(true);
       } else {
@@ -77,7 +87,6 @@ export default function Login({ route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Modal de Avisos */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -181,143 +190,3 @@ export default function Login({ route }) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: '#EEF2FF',
-    padding: 20,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    padding: 26,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  iconeCirculo: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#EEF2FF',
-    alignSelf: 'center',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  iconeTexto: { fontSize: 28 },
-  titulo: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    textAlign: 'center',
-  },
-  subtitulo: {
-    fontSize: 13,
-    color: '#64748B',
-    textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#475569',
-    marginBottom: 6,
-    letterSpacing: 0.5,
-  },
-  input: {
-    fontSize: 14,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 16,
-    borderRadius: 10,
-    color: '#0F172A',
-  },
-  botaoPrimario: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  botaoSucesso: {
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  textoBotaoPrimario: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  botaoSecundario: {
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 13,
-    borderRadius: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  textoBotaoSecundario: {
-    color: '#475569',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  divisorLinha: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  traco: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E2E8F0',
-  },
-  divisorTexto: {
-    marginHorizontal: 10,
-    fontSize: 12,
-    color: '#94A3B8',
-    fontWeight: 'bold',
-  },
-  modalFundo: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-  },
-  modalCaixa: {
-    width: '84%',
-    backgroundColor: '#FFFFFF',
-    padding: 24,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  modalIcone: { fontSize: 32, marginBottom: 8 },
-  modalTexto: {
-    fontSize: 15,
-    color: '#334155',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 22,
-  },
-  botaoPrimarioModal: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
-  },
-});

@@ -7,9 +7,9 @@ import {
   FlatList,
   Modal,
   Pressable,
-  StyleSheet,
   Vibration,
 } from 'react-native';
+import { crudListaStyles as styles } from '../styles';
 
 export default function Categorias({
   categorias,
@@ -264,7 +264,7 @@ export default function Categorias({
       </Modal>
 
       <Pressable style={styles.botaoNovaCategoria} onPress={abrirModalCriar}>
-        <Text style={styles.textoBotaoNova}>+ Criar Nova Categoria</Text>
+        <Text style={styles.textoBotaoNovo}>+ Criar Nova Categoria</Text>
       </Pressable>
 
       <Text style={styles.subtituloLista}>
@@ -281,9 +281,9 @@ export default function Categorias({
           ).length;
 
           return (
-            <View style={styles.cardCategoria}>
+            <View style={styles.cardItem}>
               <View style={{ flex: 1, marginRight: 10 }}>
-                <Text style={styles.nomeCategoria}>📂 {item.nome}</Text>
+                <Text style={styles.nomeItem}>📂 {item.nome}</Text>
                 <Text style={styles.contadorItens}>
                   {totalItens} {totalItens === 1 ? 'item vinculado' : 'itens vinculados'}
                 </Text>
@@ -311,142 +311,3 @@ export default function Categorias({
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC', padding: 16 },
-  botaoNovaCategoria: {
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  textoBotaoNova: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 15 },
-  subtituloLista: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#64748B',
-    letterSpacing: 0.5,
-  },
-  cardCategoria: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  nomeCategoria: { fontSize: 15, fontWeight: 'bold', color: '#0F172A' },
-  contadorItens: { fontSize: 12, color: '#64748B', marginTop: 4 },
-  botoesAcao: { flexDirection: 'row', alignItems: 'center' },
-  botaoCardEditar: {
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  textoCardEditar: { color: '#B45309', fontWeight: 'bold', fontSize: 12 },
-  botaoCardExcluir: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-  },
-  textoCardExcluir: { fontSize: 13 },
-  modalFundo: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-  },
-  modalCaixa: {
-    width: '86%',
-    backgroundColor: '#FFFFFF',
-    padding: 22,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  modalTitulo: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    marginBottom: 14,
-  },
-  modalTexto: {
-    fontSize: 14,
-    color: '#475569',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  inputModal: {
-    width: '100%',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 14,
-    fontSize: 14,
-    color: '#0F172A',
-  },
-  textoErro: {
-    color: '#DC2626',
-    fontSize: 12,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  botoesLinhaModal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  botaoVerde: {
-    flex: 1,
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  botaoAzul: {
-    flex: 1,
-    backgroundColor: '#4F46E5',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  botaoAzulUnico: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  botaoVermelho: {
-    flex: 1,
-    backgroundColor: '#EF4444',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  botaoCinza: {
-    flex: 1,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  textoBotaoModal: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 14 },
-  textoBotaoCinza: { color: '#475569', fontWeight: 'bold', fontSize: 14 },
-});
