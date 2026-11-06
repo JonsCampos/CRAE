@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import base64 from 'react-native-base64';
 import { loginStyles as styles } from '../styles';
-import { supabase } from '../App'; // Certifique-se de que o caminho do import do supabase está correto
+import { supabase } from '../supabase';
 
 export default function Login({ aoLogar }) {
   const [usr, setUsr] = useState('');

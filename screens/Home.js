@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { homeStyles as styles, cardEsgotadoStyle } from '../styles';
-import { supabase } from '../App';
+import { supabase } from '../supabase';
 
 export default function Home({ navigation }) {
   const [busca, setBusca] = useState('');
@@ -74,8 +74,14 @@ export default function Home({ navigation }) {
   );
 
   const compartilharWhatsApp = (item) => {
+    const hoje = new Date();
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const ano = hoje.getFullYear();
+    const dataAtual = `${dia}/${mes}/${ano}`;
+
     const categoriaTexto = item.categoria ? item.categoria : 'Geral';
-    const mensagem = `*Inventário Dra. Luna*\nCategoria: ${categoriaTexto}\nMaterial: ${item.nome}\nLocal: ${item.localizacao}\nEstoque atual: ${item.quantidade} un.`;
+    const mensagem = `*Inventário Dra. Luna*\n\nData: ${dataAtual}\n\nCategoria: ${categoriaTexto}\nMaterial: ${item.nome}\n\nEstoque atual: ${item.quantidade} unidades\nLocal: ${item.localizacao}`;
     Linking.openURL(`https://wa.me/?text=${encodeURIComponent(mensagem)}`);
   };
 

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { crudListaStyles as styles } from '../styles';
-import { supabase } from '../App';
+import { supabase } from '../supabase';
 
 export default function Localizacoes() {
   const [localizacoes, setLocalizacoes] = useState([]);

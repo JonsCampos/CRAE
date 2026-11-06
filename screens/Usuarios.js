@@ -12,20 +12,18 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import base64 from 'react-native-base64';
 import { crudListaStyles as styles } from '../styles';
-import { supabase } from '../App';
+import { supabase } from '../supabase';
 
-export default function Usuarios({ usuarioAtual }) {
+export default function Usuarios({ usuarioAtual, atualizarUsuarioLogado }) {
   const [usuarios, setUsuarios] = useState([]);
   const [busca, setBusca] = useState('');
 
-  // Estados do Modal de Criar Usuário (1 = Comum por padrão)
   const [modalCriarVisible, setModalCriarVisible] = useState(false);
   const [novoLogin, setNovoLogin] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [novoNivel, setNovoNivel] = useState(1);
   const [erroCriar, setErroCriar] = useState('');
 
-  // Estados do Modal de Editar Usuário
   const [modalEditarVisible, setModalEditarVisible] = useState(false);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState(null);
   const [loginEdicao, setLoginEdicao] = useState('');
@@ -33,14 +31,12 @@ export default function Usuarios({ usuarioAtual }) {
   const [nivelEdicao, setNivelEdicao] = useState(1);
   const [erroEditar, setErroEditar] = useState('');
 
-  // Estados de Aviso e Exclusão
   const [modalAvisoVisible, setModalAvisoVisible] = useState(false);
   const [mensagemAviso, setMensagemAviso] = useState('');
   const [modalExcluirVisible, setModalExcluirVisible] = useState(false);
 
   const regexUsuario = /^\w{3,}$/;
 
-  // --- BUSCAR DADOS DO SUPABASE ---
   const carregarUsuarios = async () => {
     try {
       const { data, error } = await supabase
@@ -51,9 +47,9 @@ export default function Usuarios({ usuarioAtual }) {
         console.log('Erro ao buscar usuários:', error.message);
       } else if (data) {
         const usuariosFormatados = data.map((u) => ({
-          id: String(u.IdUsuario || u.id),
-          login: u.NmUsuario || u.login,
-          senha: u.PswUsuario || u.senha,
+          id: String(u.IdUsuario),
+          login: u.NmUsuario,
+          senha: u.PswUsuario,
           nivel: u.NvlUsuario !== undefined && u.NvlUsuario !== null ? Number(u.NvlUsuario) : 1,
         }));
         setUsuarios(usuariosFormatados);
@@ -63,7 +59,6 @@ export default function Usuarios({ usuarioAtual }) {
     }
   };
 
-  // useFocusEffect garante que a lista recarregue sempre que a aba ganha foco
   useFocusEffect(
     useCallback(() => {
       carregarUsuarios();
@@ -76,30 +71,32 @@ export default function Usuarios({ usuarioAtual }) {
     setModalAvisoVisible(true);
   };
 
-  // CREATE
   const abrirModalCriar = () => {
     setNovoLogin('');
     setNovaSenha('');
-    setNovoNivel(1); // 1 = Usuário Comum
+    setNovoNivel(1);
     setErroCriar('');
     setModalCriarVisible(true);
   };
 
   const confirmarCriacaoUsuario = async () => {
-    if (novoLogin === '' || novaSenha === '') {
+    const loginLimpo = novoLogin.trim();
+    const senhaLimpa = novaSenha.trim();
+
+    if (loginLimpo === '' || senhaLimpa === '') {
       Vibration.vibrate(400);
       setErroCriar('Preencha o login e a senha.');
       return;
     }
 
-    if (!regexUsuario.test(novoLogin)) {
+    if (!regexUsuario.test(loginLimpo)) {
       Vibration.vibrate(400);
       setErroCriar('O login deve ter pelo menos 3 caracteres alfanuméricos (sem espaços).');
       return;
     }
 
     const jaExiste = usuarios.some(
-      (u) => u.login === novoLogin
+      (u) => u.login.toLowerCase() === loginLimpo.toLowerCase()
     );
     if (jaExiste) {
       Vibration.vibrate(400);
@@ -111,9 +108,9 @@ export default function Usuarios({ usuarioAtual }) {
       .from('GM_Usuarios')
       .insert([
         {
-          NmUsuario: novoLogin,
-          PswUsuario: base64.encode(novaSenha),
-          NvlUsuario: Number(novoNivel), // Salva 0 (Admin) ou 1 (Comum)
+          NmUsuario: loginLimpo,
+          PswUsuario: base64.encode(senhaLimpa),
+          NvlUsuario: Number(novoNivel),
         },
       ]);
 
@@ -126,7 +123,6 @@ export default function Usuarios({ usuarioAtual }) {
     carregarUsuarios();
   };
 
-  // UPDATE
   const abrirModalEdicao = (usr) => {
     setUsuarioSelecionado(usr);
     setLoginEdicao(usr.login);
@@ -137,13 +133,16 @@ export default function Usuarios({ usuarioAtual }) {
   };
 
   const salvarEdicaoUsuario = async () => {
-    if (loginEdicao === '') {
+    const loginLimpo = loginEdicao.trim();
+    const senhaLimpa = senhaEdicao.trim();
+
+    if (loginLimpo === '') {
       Vibration.vibrate(400);
       setErroEditar('O login não pode ficar vazio.');
       return;
     }
 
-    if (!regexUsuario.test(loginEdicao)) {
+    if (!regexUsuario.test(loginLimpo)) {
       Vibration.vibrate(400);
       setErroEditar('O login deve ter pelo menos 3 caracteres alfanuméricos.');
       return;
@@ -152,7 +151,7 @@ export default function Usuarios({ usuarioAtual }) {
     const jaExiste = usuarios.some(
       (u) =>
         u.id !== usuarioSelecionado.id &&
-        u.login === loginEdicao
+        u.login.toLowerCase() === loginLimpo.toLowerCase()
     );
     if (jaExiste) {
       Vibration.vibrate(400);
@@ -160,7 +159,6 @@ export default function Usuarios({ usuarioAtual }) {
       return;
     }
 
-    // Impede o usuário logado de remover o próprio privilégio de Admin (Nível 0)
     if (
       usuarioAtual &&
       usuarioSelecionado.id === usuarioAtual.id &&
@@ -172,12 +170,12 @@ export default function Usuarios({ usuarioAtual }) {
     }
 
     const senhaFinal =
-      senhaEdicao !== '' ? base64.encode(senhaEdicao) : usuarioSelecionado.senha;
+      senhaLimpa !== '' ? base64.encode(senhaLimpa) : usuarioSelecionado.senha;
 
     const { error } = await supabase
       .from('GM_Usuarios')
       .update({
-        NmUsuario: loginEdicao,
+        NmUsuario: loginLimpo,
         PswUsuario: senhaFinal,
         NvlUsuario: Number(nivelEdicao),
       })
@@ -188,17 +186,25 @@ export default function Usuarios({ usuarioAtual }) {
       return;
     }
 
+    if (usuarioAtual && usuarioSelecionado.id === usuarioAtual.id && atualizarUsuarioLogado) {
+      atualizarUsuarioLogado({
+        ...usuarioAtual,
+        login: loginLimpo,
+        senha: senhaFinal,
+        nivel: Number(nivelEdicao),
+      });
+    }
+
     setModalEditarVisible(false);
     setUsuarioSelecionado(null);
     carregarUsuarios();
   };
 
-  // DELETE
   const tentarExcluirUsuario = (usr) => {
     if (
       usuarioAtual &&
       (usr.id === usuarioAtual.id ||
-        usr.login === usuarioAtual.login)
+        usr.login.toLowerCase() === usuarioAtual.login.toLowerCase())
     ) {
       mostrarAvisoErro(
         'Operação bloqueada: Você não pode excluir o seu próprio usuário enquanto estiver logado.'
@@ -227,10 +233,9 @@ export default function Usuarios({ usuarioAtual }) {
     setUsuarioSelecionado(null);
   };
 
-  // Filtros e Listagem por Seção
-  const termo = (busca || '');
+  const termo = (busca || '').toLowerCase();
   const usuariosFiltrados = (usuarios || []).filter((u) => {
-    const login = (u.login || '');
+    const login = (u.login || '').toLowerCase();
     const nivelTexto = u.nivel === 0 ? 'administrador admin' : 'normal comum';
     return login.includes(termo) || nivelTexto.includes(termo);
   });
@@ -252,7 +257,7 @@ export default function Usuarios({ usuarioAtual }) {
         style={{
           flex: 1,
           paddingVertical: 10,
-          borderRadius: 8,
+          borderRadius: 6,
           borderWidth: 1,
           borderColor: valorAtual === 1 ? '#4F46E5' : '#CBD5E1',
           backgroundColor: valorAtual === 1 ? '#EEF2FF' : '#F8FAFC',
@@ -276,7 +281,7 @@ export default function Usuarios({ usuarioAtual }) {
         style={{
           flex: 1,
           paddingVertical: 10,
-          borderRadius: 8,
+          borderRadius: 6,
           borderWidth: 1,
           borderColor: valorAtual === 0 ? '#4F46E5' : '#CBD5E1',
           backgroundColor: valorAtual === 0 ? '#EEF2FF' : '#F8FAFC',
@@ -299,7 +304,6 @@ export default function Usuarios({ usuarioAtual }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* MODAL 1: Criar Novo Usuário */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -369,7 +373,6 @@ export default function Usuarios({ usuarioAtual }) {
         </View>
       </Modal>
 
-      {/* MODAL 2: Editar Usuário */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -445,7 +448,6 @@ export default function Usuarios({ usuarioAtual }) {
         </View>
       </Modal>
 
-      {/* MODAL 3: Avisos e Bloqueios */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -465,7 +467,6 @@ export default function Usuarios({ usuarioAtual }) {
         </View>
       </Modal>
 
-      {/* MODAL 4: Confirmar Exclusão */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -527,7 +528,7 @@ export default function Usuarios({ usuarioAtual }) {
           const isProprioUsuario =
             usuarioAtual &&
             (item.id === usuarioAtual.id ||
-              item.login === usuarioAtual.login);
+              item.login.toLowerCase() === usuarioAtual.login.toLowerCase());
 
           return (
             <View style={styles.cardItem}>

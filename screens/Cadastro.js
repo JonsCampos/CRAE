@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { cadastroStyles as styles, inputBloqueadoStyle } from '../styles';
-import { supabase } from '../App';
+import { supabase } from '../supabase';
 
 export default function Cadastro({ route, navigation }) {
   const itemExistente = route.params?.itemParaEditar;
@@ -46,9 +46,13 @@ export default function Cadastro({ route, navigation }) {
         }));
         setCategorias(catsFormatadas);
 
-        if (!itemExistente && !categoria && catsFormatadas.length > 0) {
-          setCategoria(catsFormatadas[0].nome);
-        }
+        // Mantém a categoria já selecionada pelo usuário se ela ainda existir;
+        // caso esteja vazia ou tenha sido excluída, seleciona a primeira disponível
+        setCategoria((catAtual) => {
+          const aindaExiste = catsFormatadas.some((c) => c.nome === catAtual);
+          if (catAtual && aindaExiste) return catAtual;
+          return catsFormatadas.length > 0 ? catsFormatadas[0].nome : '';
+        });
       }
 
       const { data: locData, error: locError } = await supabase
@@ -62,9 +66,13 @@ export default function Cadastro({ route, navigation }) {
         }));
         setLocalizacoes(locsFormatadas);
 
-        if (!itemExistente && !localizacao && locsFormatadas.length > 0) {
-          setLocalizacao(locsFormatadas[0].nome);
-        }
+        // Mantém a localização já selecionada pelo usuário se ela ainda existir;
+        // caso esteja vazia ou tenha sido excluída, seleciona a primeira disponível
+        setLocalizacao((locAtual) => {
+          const aindaExiste = locsFormatadas.some((l) => l.nome === locAtual);
+          if (locAtual && aindaExiste) return locAtual;
+          return locsFormatadas.length > 0 ? locsFormatadas[0].nome : '';
+        });
       }
     } catch (err) {
       console.log('Erro ao carregar dados auxiliares:', err);
@@ -100,11 +108,7 @@ export default function Cadastro({ route, navigation }) {
     const localObj = localizacoes.find((loc) => loc.nome === localizacao);
     const idLocalSelecionado = localObj ? Number(localObj.id) : null;
 
-    console.log('IDs mapeados -> IdCategoria:', idCategoriaSelecionada, '| IdLocal:', idLocalSelecionado);
-
     if (itemExistente) {
-      console.log('Executando rotina de UPDATE no Supabase para o ID:', itemExistente.id);
-
       const materialAtualizadoSupabase = {
         NmMaterial: nome.trim(),
         IdCategoria: idCategoriaSelecionada,
@@ -115,21 +119,17 @@ export default function Cadastro({ route, navigation }) {
       const { error } = await supabase
         .from('GM_Materiais')
         .update(materialAtualizadoSupabase)
-        .eq('IdMaterial', itemExistente.id); 
+        .eq('IdMaterial', itemExistente.id);
 
       if (error) {
-        console.log('ERRO DO SUPABASE NO UPDATE:', error.message);
         Vibration.vibrate(400);
         setMensagemModal('Erro ao atualizar no banco: ' + error.message);
         setModalVisible(true);
         return;
       }
 
-      console.log('Update realizado com sucesso! Retornando...');
       navigation.goBack();
-      return;
     } else {
-      console.log('Executando rotina de INSERT no Supabase...');
       if (!regexDigitos.test(quantidade.trim())) {
         Vibration.vibrate(400);
         setMensagemModal('A quantidade inicial deve conter apenas dígitos numéricos (>= 0).');
@@ -152,16 +152,13 @@ export default function Cadastro({ route, navigation }) {
         .insert([addMaterial]);
 
       if (error) {
-        console.log('ERRO DO SUPABASE NO INSERT:', error.message);
         Vibration.vibrate(400);
         setMensagemModal('Erro ao salvar no banco: ' + error.message);
         setModalVisible(true);
         return;
       }
 
-      console.log('Insert realizado com sucesso! Retornando...');
       navigation.goBack();
-      return;
     }
   };
 

@@ -4,7 +4,6 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { createClient } from '@supabase/supabase-js';
 
 import Login from './screens/Login';
 import Home from './screens/Home';
@@ -12,16 +11,6 @@ import Cadastro from './screens/Cadastro';
 import Categorias from './screens/Categorias';
 import Localizacoes from './screens/Localizacoes';
 import Usuarios from './screens/Usuarios';
-
-const SUPABASE_URL = 'https://hubzdjxrotcrjbzjooha.supabase.co/';
-const SUPABASE_ANON_KEY = 'sb_publishable_V3ndtlN57elIcYWcbXw-eQ_LVQFmTXx';
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: false,
-    detectSessionInUrl: false,
-  },
-});
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -81,10 +70,15 @@ export default function App() {
       <Tab.Screen name="Categorias" component={Categorias} options={{ tabBarLabel: 'Categorias' }} />
       <Tab.Screen name="Locais" component={Localizacoes} options={{ tabBarLabel: 'Locais' }} />
 
-      {/* Exibe a aba de Usuários apenas se o nível for 0 (Administrador) */}
       {usuarioAtual?.nivel === 0 ? (
         <Tab.Screen name="Usuarios" options={{ tabBarLabel: 'Usuários' }}>
-          {(props) => <Usuarios {...props} usuarioAtual={usuarioAtual} />}
+          {(props) => (
+            <Usuarios
+              {...props}
+              usuarioAtual={usuarioAtual}
+              atualizarUsuarioLogado={setUsuarioAtual}
+            />
+          )}
         </Tab.Screen>
       ) : null}
     </Tab.Navigator>
@@ -106,19 +100,16 @@ export default function App() {
             component={AbasPrincipais}
             options={{ headerShown: false }}
           />
-
           <Stack.Screen
             name="Cadastro"
             component={Cadastro}
             options={{ title: 'Ficha do Material' }}
           />
-
           <Stack.Screen
             name="CategoriasStack"
             component={Categorias}
             options={{ title: 'Gerenciar Categorias' }}
           />
-
           <Stack.Screen
             name="LocalizacoesStack"
             component={Localizacoes}
