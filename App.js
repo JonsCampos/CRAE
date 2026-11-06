@@ -93,6 +93,8 @@ export default function App() {
             headerTintColor: '#FFFFFF',
             headerTitleStyle: { fontWeight: 'bold', fontSize: 18 },
             headerShadowVisible: false,
+            headerBackTitleVisible: false,
+            headerBackButtonDisplayMode: 'minimal',
           }}
         >
           <Stack.Screen

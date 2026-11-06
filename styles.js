@@ -213,24 +213,38 @@ export const homeStyles = StyleSheet.create({
     borderRadius: 4,
   },
   textoPillEsgotado: { fontSize: 11, fontWeight: 'bold', color: '#991B1B' },
-  textoCategoria: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#4F46E5',
-    marginBottom: 4,
+  containerMetadados: {
+    marginTop: 2,
+    marginBottom: 8,
   },
-  textoDetalhe: { fontSize: 13, color: '#64748B', marginBottom: 8 },
-  caixaLocal: {
+  caixaMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F8FAFC',
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 4,
-    alignSelf: 'flex-start',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  labelMeta: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#4F46E5',
+  },
+  valorMeta: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  textoDetalhe: {
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 19,
     marginBottom: 12,
   },
-  textoLocal: { fontSize: 12, fontWeight: '600', color: '#334155' },
   botaoMovimentar: {
     backgroundColor: '#4F46E5',
     paddingVertical: 10,

@@ -199,21 +199,27 @@ export default function Home({ navigation }) {
           </View>
         </View>
 
-        {modoVisao !== 'categoria' ? (
-          <Text style={styles.textoCategoria}>
-            Categoria: {item.categoria || 'Geral'}
-          </Text>
-        ) : null}
+        {/* Bloco padronizado de Categoria e Local */}
+        <View style={styles.containerMetadados}>
+          {modoVisao !== 'categoria' ? (
+            <View style={styles.caixaMeta}>
+              <Text style={styles.labelMeta}>Categoria: </Text>
+              <Text style={styles.valorMeta}>{item.categoria || 'Geral'}</Text>
+            </View>
+          ) : null}
 
+          {modoVisao !== 'local' ? (
+            <View style={styles.caixaMeta}>
+              <Text style={styles.labelMeta}>Local: </Text>
+              <Text style={styles.valorMeta}>{item.localizacao}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Descrição sempre abaixo das etiquetas */}
         <Text style={styles.textoDetalhe}>
           {item.descricao ? item.descricao : 'Sem descrição cadastrada'}
         </Text>
-
-        {modoVisao !== 'local' ? (
-          <View style={styles.caixaLocal}>
-            <Text style={styles.textoLocal}>Local: {item.localizacao}</Text>
-          </View>
-        ) : null}
 
         <Pressable
           style={styles.botaoMovimentar}
