@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -10,6 +10,7 @@ import {
   Pressable,
   Vibration,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { cadastroStyles as styles, inputBloqueadoStyle } from '../styles';
 import { supabase } from '../App';
 
@@ -70,9 +71,11 @@ export default function Cadastro({ route, navigation }) {
     }
   };
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      carregarDados();
+    }, [])
+  );
 
   const regexDigitos = /^\d+$/;
 
@@ -91,7 +94,6 @@ export default function Cadastro({ route, navigation }) {
       return;
     }
 
-    // Mapeia o nome selecionado para o ID numérico correspondente
     const categoriaObj = categorias.find((cat) => cat.nome === categoria);
     const idCategoriaSelecionada = categoriaObj ? Number(categoriaObj.id) : null;
 
@@ -123,8 +125,7 @@ export default function Cadastro({ route, navigation }) {
         return;
       }
 
-      setMensagemModal('Update realizado com sucesso!');
-      setModalVisible(true);
+      console.log('Update realizado com sucesso! Retornando...');
       navigation.goBack();
       return;
     } else {
