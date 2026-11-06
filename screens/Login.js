@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 import base64 from 'react-native-base64';
 import { loginStyles as styles } from '../styles';
+import { supabase } from '../App'; // Certifique-se de que o caminho do import do supabase está correto
 
-export default function Login({ usuarios, aoLogar }) {
+export default function Login({ aoLogar }) {
   const [usr, setUsr] = useState('');
   const [pwd, setPwd] = useState('');
   const [carregando, setCarregando] = useState(false);
@@ -26,9 +27,9 @@ export default function Login({ usuarios, aoLogar }) {
     setModalVisible(true);
   };
 
-  const realizarLogin = () => {
-    const userLimpo = usr.trim().toLowerCase();
-    if (userLimpo === '' || pwd.trim() === '') {
+  const realizarLogin = async () => {
+
+    if (usr === '' || pwd === '') {
       exibirModalErro('Informe seu usuário e senha para acessar o acervo.');
       return;
     }
@@ -36,18 +37,39 @@ export default function Login({ usuarios, aoLogar }) {
     setCarregando(true);
     const senhaDigitadaCripto = base64.encode(pwd);
 
-    const usuarioEncontrado = (usuarios || []).find(
-      (u) =>
-        u.login.toLowerCase() === userLimpo &&
-        u.senha === senhaDigitadaCripto
-    );
+    try {
+      // Consulta diretamente no Supabase pelo login digitado
+      const { data, error } = await supabase
+        .from('GM_Usuarios')
+        .select('*')
+        .ilike('NmUsuario', usr) // .ilike busca ignorando maiúsculas/minúsculas de forma segura
+        .maybeSingle();
 
-    setCarregando(false);
+      setCarregando(false);
 
-    if (usuarioEncontrado) {
-      aoLogar(usuarioEncontrado);
-    } else {
-      exibirModalErro('Credenciais inválidas! Verifique seu usuário e senha.');
+      if (error || !data) {
+        exibirModalErro('Credenciais inválidas! Verifique seu usuário e senha.');
+        return;
+      }
+
+      // Compara a senha criptografada armazenada no banco (PswUsuario) com a digitada
+      if (data.PswUsuario === senhaDigitadaCripto) {
+        // Formata o objeto do usuário logado padronizando com os atributos do app
+        const usuarioLogado = {
+          id: String(data.IdUsuario),
+          login: data.NmUsuario,
+          senha: data.PswUsuario,
+          nivel: data.NvlUsuario !== undefined && data.NvlUsuario !== null ? Number(data.NvlUsuario) : 1, // 0 = Admin, 1 = Comum
+        };
+
+        aoLogar(usuarioLogado);
+      } else {
+        exibirModalErro('Credenciais inválidas! Verifique seu usuário e senha.');
+      }
+    } catch (err) {
+      setCarregando(false);
+      console.log('Erro ao tentar realizar login:', err);
+      exibirModalErro('Ocorreu um erro de conexão. Tente novamente.');
     }
   };
 
@@ -91,7 +113,7 @@ export default function Login({ usuarios, aoLogar }) {
         <Text style={styles.label}>SENHA DE ACESSO</Text>
         <TextInput
           style={styles.input}
-          placeholder="Digite sua senha (padrão: 123)"
+          placeholder="Digite sua senha"
           placeholderTextColor="#94A3B8"
           secureTextEntry={true}
           value={pwd}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
@@ -9,8 +9,9 @@ import {
   Pressable,
   Vibration,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { crudListaStyles as styles } from '../styles';
-import { supabase } from '../App'; // Ou import { supabase } from '../App' dependendo da sua estrutura
+import { supabase } from '../App';
 
 export default function Categorias() {
   const [categorias, setCategorias] = useState([]);
@@ -34,7 +35,6 @@ export default function Categorias() {
   // --- BUSCAR DADOS DO SUPABASE ---
   const carregarDadosDoBanco = async () => {
     try {
-      // 1. Busca as categorias da tabela GM_Categorias
       const { data: catData, error: erroCat } = await supabase
         .from('GM_Categorias')
         .select('*');
@@ -42,16 +42,13 @@ export default function Categorias() {
       if (erroCat) {
         console.log('Erro ao buscar categorias:', erroCat.message);
       } else {
-        // Mapeia respeitando as letras maiúsculas/minúsculas do banco (IdCategoria e NmCategoria)
         const categoriasFormatadas = catData.map((cat) => ({
           id: String(cat.IdCategoria),
           nome: cat.NmCategoria,
         }));
-        console.log(categoriasFormatadas)
         setCategorias(categoriasFormatadas);
       }
 
-      // 2. Busca os materiais para calcular o contador de itens vinculados
       const { data: matsData, error: erroMats } = await supabase
         .from('GM_Materiais')
         .select(`
@@ -60,7 +57,7 @@ export default function Categorias() {
           GM_Categorias ( NmCategoria )
         `);
 
-      if (!erroMats) {
+      if (!erroMats && matsData) {
         const matsFormatados = matsData.map((m) => ({
           id: String(m.IdMaterial),
           nome: m.NmMaterial,
@@ -73,9 +70,12 @@ export default function Categorias() {
     }
   };
 
-  useEffect(() => {
-    carregarDadosDoBanco();
-  }, []);
+  // useFocusEffect garante que os dados recarreguem sempre que a aba ganhar foco
+  useFocusEffect(
+    useCallback(() => {
+      carregarDadosDoBanco();
+    }, [])
+  );
 
   const mostrarAvisoErro = (msg) => {
     Vibration.vibrate(400);

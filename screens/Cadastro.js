@@ -11,38 +11,19 @@ import {
   Vibration,
 } from 'react-native';
 import { cadastroStyles as styles, inputBloqueadoStyle } from '../styles';
+import { supabase } from '../App';
 
-export default function Cadastro({
-  route,
-  navigation,
-  categorias,
-  localizacoes,
-  adicionarMaterial,
-  editarMaterial,
-}) {
+export default function Cadastro({ route, navigation }) {
   const itemExistente = route.params?.itemParaEditar;
 
+  const [categorias, setCategorias] = useState([]);
+  const [localizacoes, setLocalizacoes] = useState([]);
+
   const [nome, setNome] = useState(itemExistente ? itemExistente.nome : '');
-  const [categoria, setCategoria] = useState(
-    itemExistente && itemExistente.categoria
-      ? itemExistente.categoria
-      : categorias.length > 0
-      ? categorias[0].nome
-      : ''
-  );
-  const [localizacao, setLocalizacao] = useState(
-    itemExistente && itemExistente.localizacao
-      ? itemExistente.localizacao
-      : localizacoes.length > 0
-      ? localizacoes[0].nome
-      : ''
-  );
-  const [descricao, setDescricao] = useState(
-    itemExistente ? itemExistente.descricao : ''
-  );
-  const [quantidade, setQuantidade] = useState(
-    itemExistente ? String(itemExistente.quantidade) : '0'
-  );
+  const [categoria, setCategoria] = useState(itemExistente ? itemExistente.categoria : '');
+  const [localizacao, setLocalizacao] = useState(itemExistente ? itemExistente.localizacao : '');
+  const [descricao, setDescricao] = useState(itemExistente ? itemExistente.descricao : '');
+  const [quantidade, setQuantidade] = useState(itemExistente ? String(itemExistente.quantidade) : '0');
 
   const [modalVisible, setModalVisible] = useState(false);
   const [mensagemModal, setMensagemModal] = useState('');
@@ -50,28 +31,59 @@ export default function Cadastro({
   const [dropdownCatAberto, setDropdownCatAberto] = useState(false);
   const [dropdownLocAberto, setDropdownLocAberto] = useState(false);
 
-  useEffect(() => {
-    if (categoria === '' && categorias.length > 0) {
-      setCategoria(categorias[0].nome);
+  // --- BUSCAR CATEGORIAS E LOCAIS DO SUPABASE ---
+  const carregarDados = async () => {
+    try {
+      const { data: catData, error: catError } = await supabase
+        .from('GM_Categorias')
+        .select('*');
+
+      if (!catError && catData) {
+        const catsFormatadas = catData.map((cat) => ({
+          id: String(cat.IdCategoria),
+          nome: cat.NmCategoria,
+        }));
+        setCategorias(catsFormatadas);
+
+        if (!itemExistente && !categoria && catsFormatadas.length > 0) {
+          setCategoria(catsFormatadas[0].nome);
+        }
+      }
+
+      const { data: locData, error: locError } = await supabase
+        .from('GM_LOCAIS')
+        .select('*');
+
+      if (!locError && locData) {
+        const locsFormatadas = locData.map((loc) => ({
+          id: String(loc.IdLocal),
+          nome: loc.NmLocal,
+        }));
+        setLocalizacoes(locsFormatadas);
+
+        if (!itemExistente && !localizacao && locsFormatadas.length > 0) {
+          setLocalizacao(locsFormatadas[0].nome);
+        }
+      }
+    } catch (err) {
+      console.log('Erro ao carregar dados auxiliares:', err);
     }
-  }, [categorias]);
+  };
 
   useEffect(() => {
-    if (localizacao === '' && localizacoes.length > 0) {
-      setLocalizacao(localizacoes[0].nome);
-    }
-  }, [localizacoes]);
+    carregarDados();
+  }, []);
 
   const regexDigitos = /^\d+$/;
 
-  const salvarFormulario = () => {
+  const salvarFormulario = async () => {
     if (
       nome.trim() === '' ||
       categoria.trim() === '' ||
       localizacao.trim() === '' ||
       (!itemExistente && quantidade.trim() === '')
     ) {
-      Vibration.vibrate(400); // Erro de campos vazios: vibra!
+      Vibration.vibrate(400);
       setMensagemModal(
         'Preencha todos os campos obrigatórios (*). Se não houver Categoria ou Localização, crie uma clicando no menu suspenso.'
       );
@@ -79,39 +91,77 @@ export default function Cadastro({
       return;
     }
 
+    // Mapeia o nome selecionado para o ID numérico correspondente
+    const categoriaObj = categorias.find((cat) => cat.nome === categoria);
+    const idCategoriaSelecionada = categoriaObj ? Number(categoriaObj.id) : null;
+
+    const localObj = localizacoes.find((loc) => loc.nome === localizacao);
+    const idLocalSelecionado = localObj ? Number(localObj.id) : null;
+
+    console.log('IDs mapeados -> IdCategoria:', idCategoriaSelecionada, '| IdLocal:', idLocalSelecionado);
+
     if (itemExistente) {
-      const itemAtualizado = {
-        id: itemExistente.id,
-        nome: nome.trim(),
-        categoria: categoria,
-        descricao: descricao.trim(),
-        localizacao: localizacao,
-        quantidade: itemExistente.quantidade,
+      console.log('Executando rotina de UPDATE no Supabase para o ID:', itemExistente.id);
+
+      const materialAtualizadoSupabase = {
+        NmMaterial: nome.trim(),
+        IdCategoria: idCategoriaSelecionada,
+        IdLocal: idLocalSelecionado,
+        DscMaterial: descricao.trim(),
       };
-      editarMaterial(itemAtualizado);
-    } else {
-      if (!regexDigitos.test(quantidade.trim())) {
-        Vibration.vibrate(400); // Erro de quantidade inválida: vibra!
-        setMensagemModal(
-          'A quantidade inicial deve conter apenas dígitos numéricos (>= 0).'
-        );
+
+      const { error } = await supabase
+        .from('GM_Materiais')
+        .update(materialAtualizadoSupabase)
+        .eq('IdMaterial', itemExistente.id); 
+
+      if (error) {
+        console.log('ERRO DO SUPABASE NO UPDATE:', error.message);
+        Vibration.vibrate(400);
+        setMensagemModal('Erro ao atualizar no banco: ' + error.message);
         setModalVisible(true);
         return;
       }
 
-      const qtdNumerica = parseInt(quantidade.trim(), 10);
-      const novoItem = {
-        id: Date.now().toString(),
-        nome: nome.trim(),
-        categoria: categoria,
-        descricao: descricao.trim(),
-        localizacao: localizacao,
-        quantidade: qtdNumerica,
-      };
-      adicionarMaterial(novoItem);
-    }
+      setMensagemModal('Update realizado com sucesso!');
+      setModalVisible(true);
+      navigation.goBack();
+      return;
+    } else {
+      console.log('Executando rotina de INSERT no Supabase...');
+      if (!regexDigitos.test(quantidade.trim())) {
+        Vibration.vibrate(400);
+        setMensagemModal('A quantidade inicial deve conter apenas dígitos numéricos (>= 0).');
+        setModalVisible(true);
+        return;
+      }
 
-    navigation.goBack();
+      const qtdMaterial = parseInt(quantidade.trim(), 10);
+
+      const addMaterial = {
+        NmMaterial: nome.trim(),
+        IdCategoria: idCategoriaSelecionada,
+        IdLocal: idLocalSelecionado,
+        DscMaterial: descricao.trim(),
+        QtdMaterial: qtdMaterial,
+      };
+
+      const { error } = await supabase
+        .from('GM_Materiais')
+        .insert([addMaterial]);
+
+      if (error) {
+        console.log('ERRO DO SUPABASE NO INSERT:', error.message);
+        Vibration.vibrate(400);
+        setMensagemModal('Erro ao salvar no banco: ' + error.message);
+        setModalVisible(true);
+        return;
+      }
+
+      console.log('Insert realizado com sucesso! Retornando...');
+      navigation.goBack();
+      return;
+    }
   };
 
   return (
@@ -135,6 +185,7 @@ export default function Cadastro({
         </View>
       </Modal>
 
+      {/* Modal Dropdown Categorias */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -206,6 +257,7 @@ export default function Cadastro({
         </View>
       </Modal>
 
+      {/* Modal Dropdown Localizações */}
       <Modal
         animationType="fade"
         transparent={true}

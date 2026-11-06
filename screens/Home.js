@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
@@ -11,14 +11,14 @@ import {
   Linking,
   Vibration,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { homeStyles as styles, cardEsgotadoStyle } from '../styles';
-import { supabase } from '../App'
+import { supabase } from '../App';
 
-export default function Home({ navigation, removerMaterial }) {
+export default function Home({ navigation }) {
   const [busca, setBusca] = useState('');
   const [modoVisao, setModoVisao] = useState('categoria');
 
-  // Estado que armazenará os dados vindos do Supabase
   const [materiais, setMateriais] = useState([]);
 
   const [modalExcluirVisible, setModalExcluirVisible] = useState(false);
@@ -31,7 +31,7 @@ export default function Home({ navigation, removerMaterial }) {
   const regexApenasNumeros = /^\d+$/;
 
   // --- BUSCAR DADOS DO SUPABASE COM JOIN ---
-  const carregarMateriaisDoSupabase = async () => {
+  const carregarMateriais = async () => {
     try {
       const { data, error } = await supabase
         .from('GM_Materiais')
@@ -49,26 +49,29 @@ export default function Home({ navigation, removerMaterial }) {
         return;
       }
 
-      // Mapeamos para o formato que os seus cards e filtros já utilizam na tela
-      const dadosFormatados = data.map((item) => ({
-        id: String(item.IdMaterial),
-        nome: item.NmMaterial,
-        descricao: item.DscMaterial,
-        quantidade: item.QtdMaterial,
-        categoria: item.GM_Categorias?.NmCategoria || 'Geral',
-        localizacao: item.GM_LOCAIS?.NmLocal || 'Sem Local',
-      }));
+      if (data) {
+        const dadosFormatados = data.map((item) => ({
+          id: String(item.IdMaterial),
+          nome: item.NmMaterial,
+          descricao: item.DscMaterial,
+          quantidade: item.QtdMaterial !== null ? Number(item.QtdMaterial) : 0,
+          categoria: item.GM_Categorias?.NmCategoria || 'Geral',
+          localizacao: item.GM_LOCAIS?.NmLocal || 'Sem Local',
+        }));
 
-      setMateriais(dadosFormatados);
+        setMateriais(dadosFormatados);
+      }
     } catch (err) {
       console.log('Erro de conexão:', err);
     }
   };
 
-  // Carrega os dados assim que a tela abre ou foca
-  useEffect(() => {
-    carregarMateriaisDoSupabase();
-  }, []);
+  // useFocusEffect garante que os dados recarreguem sempre que a tela ganha foco (volta do cadastro/edição)
+  useFocusEffect(
+    useCallback(() => {
+      carregarMateriais();
+    }, [])
+  );
 
   const compartilharWhatsApp = (item) => {
     const categoriaTexto = item.categoria ? item.categoria : 'Geral';
@@ -111,7 +114,6 @@ export default function Home({ navigation, removerMaterial }) {
       novoSaldo -= valor;
     }
 
-    // Atualiza diretamente no Supabase
     const { error } = await supabase
       .from('GM_Materiais')
       .update({ QtdMaterial: novoSaldo })
@@ -123,7 +125,7 @@ export default function Home({ navigation, removerMaterial }) {
     }
 
     setModalEstoqueVisible(false);
-    carregarMateriaisDoSupabase(); // Recarrega a lista atualizada
+    carregarMateriais();
   };
 
   const pedirConfirmacaoExclusao = (item) => {
@@ -139,7 +141,7 @@ export default function Home({ navigation, removerMaterial }) {
         .eq('IdMaterial', itemSelecionado.id);
 
       if (!error) {
-        carregarMateriaisDoSupabase(); // Atualiza a lista após excluir
+        carregarMateriais();
       }
     }
     setModalExcluirVisible(false);
@@ -156,7 +158,6 @@ export default function Home({ navigation, removerMaterial }) {
     return nome.includes(termo) || local.includes(termo) || cat.includes(termo);
   });
 
-  // Agrupamento dinâmico por Categoria ou por Local baseado na aba selecionada
   const secoesAgrupadas = [];
   materiaisFiltrados.forEach((item) => {
     const chaveGrupo =
@@ -245,7 +246,6 @@ export default function Home({ navigation, removerMaterial }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Modais de Estoque e Exclusão mantidos idênticos */}
       <Modal
         animationType="fade"
         transparent={true}

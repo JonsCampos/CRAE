@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
@@ -9,6 +9,7 @@ import {
   Pressable,
   Vibration,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { crudListaStyles as styles } from '../styles';
 import { supabase } from '../App';
 
@@ -32,7 +33,7 @@ export default function Localizacoes() {
   const [modalExcluirVisible, setModalExcluirVisible] = useState(false);
 
   // --- BUSCAR DADOS DO SUPABASE ---
-  const carregarDadosDoBanco = async () => {
+  const carregarDados = async () => {
     try {
       // 1. Busca os locais da tabela GM_LOCAIS
       const { data: locaisData, error: erroLocais } = await supabase
@@ -41,28 +42,26 @@ export default function Localizacoes() {
 
       if (erroLocais) {
         console.log('Erro ao buscar locais:', erroLocais.message);
-      } else {
-        // Mapeia para o padrão esperado pela interface (id e nome)
+      } else if (locaisData) {
         const locaisFormatados = locaisData.map((loc) => ({
           id: String(loc.IdLocal),
           nome: loc.NmLocal,
         }));
         setLocalizacoes(locaisFormatados);
-        console.log(locaisFormatados);
       }
 
-      // 2. Busca os materiais para calcular a contagem de itens por local
+      // 2. Busca os materiais para calcular a contagem de itens por local (Corrigido para 'IdMaterial' maiúsculo)
       const { data: matsData, error: erroMats } = await supabase
         .from('GM_Materiais')
         .select(`
-          idMaterial,
+          IdMaterial,
           NmMaterial,
           GM_LOCAIS ( NmLocal )
         `);
 
-      if (!erroMats) {
+      if (!erroMats && matsData) {
         const matsFormatados = matsData.map((m) => ({
-          id: String(m.idMaterial),
+          id: String(m.IdMaterial),
           nome: m.NmMaterial,
           localizacao: m.GM_LOCAIS?.NmLocal || 'Sem Local',
         }));
@@ -73,9 +72,12 @@ export default function Localizacoes() {
     }
   };
 
-  useEffect(() => {
-    carregarDadosDoBanco();
-  }, []);
+  // useFocusEffect garante que os dados recarreguem sempre que a aba ganhar foco
+  useFocusEffect(
+    useCallback(() => {
+      carregarDados();
+    }, [])
+  );
 
   const mostrarAvisoErro = (msg) => {
     Vibration.vibrate(400);
@@ -118,7 +120,7 @@ export default function Localizacoes() {
 
     setModalCriarVisible(false);
     setNovaLocalizacao('');
-    carregarDadosDoBanco(); // Atualiza a lista da tela
+    carregarDados();
   };
 
   const abrirModalEdicao = (loc) => {
@@ -160,7 +162,7 @@ export default function Localizacoes() {
 
     setModalEditarVisible(false);
     setLocalSelecionado(null);
-    carregarDadosDoBanco(); // Atualiza a lista da tela
+    carregarDados();
   };
 
   const tentarExcluirLocal = (loc) => {
@@ -190,7 +192,7 @@ export default function Localizacoes() {
       if (error) {
         mostrarAvisoErro('Erro ao excluir local: ' + error.message);
       } else {
-        carregarDadosDoBanco(); // Atualiza a lista da tela
+        carregarDados();
       }
     }
     setModalExcluirVisible(false);
@@ -203,7 +205,6 @@ export default function Localizacoes() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Modais mantidos idênticos aos originais */}
       <Modal
         animationType="fade"
         transparent={true}

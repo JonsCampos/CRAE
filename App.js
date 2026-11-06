@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Pressable, Text } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import base64 from 'react-native-base64';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { createClient } from '@supabase/supabase-js';
 
 import Login from './screens/Login';
 import Home from './screens/Home';
@@ -13,16 +12,13 @@ import Cadastro from './screens/Cadastro';
 import Categorias from './screens/Categorias';
 import Localizacoes from './screens/Localizacoes';
 import Usuarios from './screens/Usuarios';
-import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'https://hubzdjxrotcrjbzjooha.supabase.co/';
 const SUPABASE_ANON_KEY = 'sb_publishable_V3ndtlN57elIcYWcbXw-eQ_LVQFmTXx';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
+    persistSession: false,
     detectSessionInUrl: false,
   },
 });
@@ -30,224 +26,10 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const CHAVE_MATERIAIS = '@inventario_materiais';
-const CHAVE_CATEGORIAS = '@inventario_categorias';
-const CHAVE_LOCALIZACOES = '@inventario_localizacoes';
-const CHAVE_USUARIOS = '@inventario_usuarios';
-
 const COR_PRIMARIA = '#4F46E5';
-
-const USUARIO_PADRAO_LUNA = {
-  id: 'u_luna_admin',
-  login: 'luna',
-  senha: base64.encode('123'),
-  nivel: 'admin',
-};
 
 export default function App() {
   const [usuarioAtual, setUsuarioAtual] = useState(null);
-
-  const [materiais, setMateriais] = useState([]);
-  const [categorias, setCategorias] = useState([]);
-  const [localizacoes, setLocalizacoes] = useState([]);
-  const [usuarios, setUsuarios] = useState([USUARIO_PADRAO_LUNA]);
-
-  useEffect(() => {
-    const carregarDadosLocais = async () => {
-      try {
-        const matStr = await AsyncStorage.getItem(CHAVE_MATERIAIS);
-        const catStr = await AsyncStorage.getItem(CHAVE_CATEGORIAS);
-        const locStr = await AsyncStorage.getItem(CHAVE_LOCALIZACOES);
-        const usrStr = await AsyncStorage.getItem(CHAVE_USUARIOS);
-
-        if (matStr !== null) setMateriais(JSON.parse(matStr));
-        if (catStr !== null) setCategorias(JSON.parse(catStr));
-        if (locStr !== null) setLocalizacoes(JSON.parse(locStr));
-
-        if (usrStr !== null) {
-          const listaUsr = JSON.parse(usrStr);
-          if (listaUsr.length > 0) {
-            setUsuarios(listaUsr);
-          } else {
-            await AsyncStorage.setItem(
-              CHAVE_USUARIOS,
-              JSON.stringify([USUARIO_PADRAO_LUNA])
-            );
-          }
-        } else {
-          await AsyncStorage.setItem(
-            CHAVE_USUARIOS,
-            JSON.stringify([USUARIO_PADRAO_LUNA])
-          );
-        }
-      } catch (error) {
-        console.log('Erro ao carregar dados do AsyncStorage:', error);
-      }
-    };
-
-    carregarDadosLocais();
-  }, []);
-
-  const salvarMateriaisStorage = async (novaLista) => {
-    setMateriais(novaLista);
-    try {
-      await AsyncStorage.setItem(CHAVE_MATERIAIS, JSON.stringify(novaLista));
-    } catch (error) {
-      console.log('Erro ao salvar materiais:', error);
-    }
-  };
-
-  const salvarCategoriasStorage = async (novaLista) => {
-    setCategorias(novaLista);
-    try {
-      await AsyncStorage.setItem(CHAVE_CATEGORIAS, JSON.stringify(novaLista));
-    } catch (error) {
-      console.log('Erro ao salvar categorias:', error);
-    }
-  };
-
-  const salvarLocalizacoesStorage = async (novaLista) => {
-    setLocalizacoes(novaLista);
-    try {
-      await AsyncStorage.setItem(CHAVE_LOCALIZACOES, JSON.stringify(novaLista));
-    } catch (error) {
-      console.log('Erro ao salvar localizacoes:', error);
-    }
-  };
-
-  const salvarUsuariosStorage = async (novaLista) => {
-    setUsuarios(novaLista);
-    try {
-      await AsyncStorage.setItem(CHAVE_USUARIOS, JSON.stringify(novaLista));
-    } catch (error) {
-      console.log('Erro ao salvar usuarios:', error);
-    }
-  };
-
-  // --- CRUD DE MATERIAIS ---
-  const adicionarMaterial = (novoItem) => {
-    salvarMateriaisStorage([...materiais, novoItem]);
-  };
-
-  const editarMaterial = (itemEditado) => {
-    const novaLista = materiais.map((item) =>
-      item.id === itemEditado.id
-        ? { ...itemEditado, quantidade: item.quantidade }
-        : item
-    );
-    salvarMateriaisStorage(novaLista);
-  };
-
-  const atualizarEstoque = (id, novaQuantidade) => {
-    const novaLista = materiais.map((item) =>
-      item.id === id ? { ...item, quantidade: novaQuantidade } : item
-    );
-    salvarMateriaisStorage(novaLista);
-  };
-
-  const removerMaterial = (id) => {
-    salvarMateriaisStorage(materiais.filter((item) => item.id !== id));
-  };
-
-  // --- CRUD DE CATEGORIAS ---
-  const adicionarCategoria = (nomeNovaCategoria) => {
-    const nova = {
-      id: Date.now().toString(),
-      nome: nomeNovaCategoria,
-    };
-    salvarCategoriasStorage([...categorias, nova]);
-  };
-
-  const editarCategoria = (idCategoria, nomeAntigo, nomeNovo) => {
-    const novasCategorias = categorias.map((cat) =>
-      cat.id === idCategoria ? { ...cat, nome: nomeNovo } : cat
-    );
-    salvarCategoriasStorage(novasCategorias);
-
-    const novosMateriais = materiais.map((item) =>
-      item.categoria === nomeAntigo ? { ...item, categoria: nomeNovo } : item
-    );
-    salvarMateriaisStorage(novosMateriais);
-  };
-
-  const removerCategoria = (idCategoria) => {
-    salvarCategoriasStorage(categorias.filter((cat) => cat.id !== idCategoria));
-  };
-
-  // --- CRUD DE LOCALIZAÇÕES FÍSICAS ---
-  const adicionarLocalizacao = (nomeNovaLocalizacao) => {
-    const nova = {
-      id: Date.now().toString(),
-      nome: nomeNovaLocalizacao,
-    };
-    salvarLocalizacoesStorage([...localizacoes, nova]);
-  };
-
-  const editarLocalizacao = (idLocal, nomeAntigo, nomeNovo) => {
-    const novasLocalizacoes = localizacoes.map((loc) =>
-      loc.id === idLocal ? { ...loc, nome: nomeNovo } : loc
-    );
-    salvarLocalizacoesStorage(novasLocalizacoes);
-
-    const novosMateriais = materiais.map((item) =>
-      item.localizacao === nomeAntigo
-        ? { ...item, localizacao: nomeNovo }
-        : item
-    );
-    salvarMateriaisStorage(novosMateriais);
-  };
-
-  const removerLocalizacao = (idLocal) => {
-    salvarLocalizacoesStorage(localizacoes.filter((loc) => loc.id !== idLocal));
-  };
-
-  // --- CRUD DE USUÁRIOS ---
-  const adicionarUsuario = (dadosNovoUsuario) => {
-    const novo = {
-      id: Date.now().toString(),
-      login: dadosNovoUsuario.login,
-      senha: dadosNovoUsuario.senha,
-      nivel: dadosNovoUsuario.nivel,
-    };
-    salvarUsuariosStorage([...usuarios, novo]);
-  };
-
-  const editarUsuario = (usuarioEditado) => {
-    const novaLista = usuarios.map((u) =>
-      u.id === usuarioEditado.id ? usuarioEditado : u
-    );
-    salvarUsuariosStorage(novaLista);
-
-    if (usuarioAtual && usuarioAtual.id === usuarioEditado.id) {
-      setUsuarioAtual(usuarioEditado);
-    }
-  };
-
-  const removerUsuario = (idUsuario) => {
-    salvarUsuariosStorage(usuarios.filter((u) => u.id !== idUsuario));
-  };
-
-  const renderCategorias = (props) => (
-    <Categorias
-      {...props}
-      categorias={categorias}
-      materiais={materiais}
-      adicionarCategoria={adicionarCategoria}
-      editarCategoria={editarCategoria}
-      removerCategoria={removerCategoria}
-    />
-  );
-
-  const renderLocalizacoes = (props) => (
-    <Localizacoes
-      {...props}
-      localizacoes={localizacoes}
-      materiais={materiais}
-      adicionarLocalizacao={adicionarLocalizacao}
-      editarLocalizacao={editarLocalizacao}
-      removerLocalizacao={removerLocalizacao}
-    />
-  );
 
   const AbasPrincipais = () => (
     <Tab.Navigator
@@ -295,37 +77,14 @@ export default function App() {
         },
       })}
     >
-      <Tab.Screen name="Material" options={{ tabBarLabel: 'Material' }}>
-        {(props) => (
-          <Home
-            {...props}
-            materiais={materiais}
-            atualizarEstoque={atualizarEstoque}
-            removerMaterial={removerMaterial}
-          />
-        )}
-      </Tab.Screen>
+      <Tab.Screen name="Material" component={Home} options={{ tabBarLabel: 'Material' }} />
+      <Tab.Screen name="Categorias" component={Categorias} options={{ tabBarLabel: 'Categorias' }} />
+      <Tab.Screen name="Locais" component={Localizacoes} options={{ tabBarLabel: 'Locais' }} />
 
-      <Tab.Screen name="Categorias" options={{ tabBarLabel: 'Categorias' }}>
-        {renderCategorias}
-      </Tab.Screen>
-
-      <Tab.Screen name="Locais" options={{ tabBarLabel: 'Locais' }}>
-        {renderLocalizacoes}
-      </Tab.Screen>
-
-      {usuarioAtual?.nivel === 'admin' ? (
+      {/* Exibe a aba de Usuários apenas se o nível for 0 (Administrador) */}
+      {usuarioAtual?.nivel === 0 ? (
         <Tab.Screen name="Usuarios" options={{ tabBarLabel: 'Usuários' }}>
-          {(props) => (
-            <Usuarios
-              {...props}
-              usuarios={usuarios}
-              usuarioAtual={usuarioAtual}
-              adicionarUsuario={adicionarUsuario}
-              editarUsuario={editarUsuario}
-              removerUsuario={removerUsuario}
-            />
-          )}
+          {(props) => <Usuarios {...props} usuarioAtual={usuarioAtual} />}
         </Tab.Screen>
       ) : null}
     </Tab.Navigator>
@@ -350,32 +109,21 @@ export default function App() {
 
           <Stack.Screen
             name="Cadastro"
+            component={Cadastro}
             options={{ title: 'Ficha do Material' }}
-          >
-            {(props) => (
-              <Cadastro
-                {...props}
-                categorias={categorias}
-                localizacoes={localizacoes}
-                adicionarMaterial={adicionarMaterial}
-                editarMaterial={editarMaterial}
-              />
-            )}
-          </Stack.Screen>
+          />
 
           <Stack.Screen
             name="CategoriasStack"
+            component={Categorias}
             options={{ title: 'Gerenciar Categorias' }}
-          >
-            {renderCategorias}
-          </Stack.Screen>
+          />
 
           <Stack.Screen
             name="LocalizacoesStack"
+            component={Localizacoes}
             options={{ title: 'Gerenciar Locais Físicos' }}
-          >
-            {renderLocalizacoes}
-          </Stack.Screen>
+          />
         </Stack.Navigator>
       ) : (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -383,7 +131,6 @@ export default function App() {
             {(props) => (
               <Login
                 {...props}
-                usuarios={usuarios}
                 aoLogar={(usr) => setUsuarioAtual(usr)}
               />
             )}
