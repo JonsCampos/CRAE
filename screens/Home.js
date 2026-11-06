@@ -15,6 +15,20 @@ import { useFocusEffect } from '@react-navigation/native';
 import { homeStyles as styles, cardEsgotadoStyle } from '../styles';
 import { supabase } from '../supabase';
 
+// Função real exportada para testes automatizados (Jest)
+export function calcularMovimentacaoEstoque(estoqueAtual, valor, tipo) {
+  if (tipo === 'entrada') {
+    return estoqueAtual + valor;
+  }
+  if (tipo === 'saida') {
+    if (valor > estoqueAtual) {
+      return -1; // Indica saldo insuficiente
+    }
+    return estoqueAtual - valor;
+  }
+  return estoqueAtual;
+}
+
 export default function Home({ navigation }) {
   const [busca, setBusca] = useState('');
   const [modoVisao, setModoVisao] = useState('categoria');
@@ -66,7 +80,6 @@ export default function Home({ navigation }) {
     }
   };
 
-  // useFocusEffect garante que os dados recarreguem sempre que a tela ganha foco (volta do cadastro/edição)
   useFocusEffect(
     useCallback(() => {
       carregarMateriais();
@@ -106,18 +119,15 @@ export default function Home({ navigation }) {
       return;
     }
 
-    let novoSaldo = itemSelecionado.quantidade;
-    if (tipo === 'entrada') {
-      novoSaldo += valor;
-    } else if (tipo === 'saida') {
-      if (valor > itemSelecionado.quantidade) {
-        Vibration.vibrate(400);
-        setErroEstoque(
-          `Saldo insuficiente! Tentou retirar ${valor}, mas só há ${itemSelecionado.quantidade} em estoque.`
-        );
-        return;
-      }
-      novoSaldo -= valor;
+    // Utiliza a função exportada de regra de negócio
+    const novoSaldo = calcularMovimentacaoEstoque(itemSelecionado.quantidade, valor, tipo);
+    
+    if (novoSaldo === -1) {
+      Vibration.vibrate(400);
+      setErroEstoque(
+        `Saldo insuficiente! Tentou retirar ${valor}, mas só há ${itemSelecionado.quantidade} em estoque.`
+      );
+      return;
     }
 
     const { error } = await supabase
@@ -199,7 +209,6 @@ export default function Home({ navigation }) {
           </View>
         </View>
 
-        {/* Bloco padronizado de Categoria e Local */}
         <View style={styles.containerMetadados}>
           {modoVisao !== 'categoria' ? (
             <View style={styles.caixaMeta}>
@@ -216,7 +225,6 @@ export default function Home({ navigation }) {
           ) : null}
         </View>
 
-        {/* Descrição sempre abaixo das etiquetas */}
         <Text style={styles.textoDetalhe}>
           {item.descricao ? item.descricao : 'Sem descrição cadastrada'}
         </Text>

@@ -14,6 +14,13 @@ import base64 from 'react-native-base64';
 import { crudListaStyles as styles } from '../styles';
 import { supabase } from '../supabase';
 
+// Regras reais exportadas para testes automatizados (Jest)
+export const regexUsuario = /^\w{3,}$/;
+
+export function criptografarSenha(senha) {
+  return base64.encode(senha.trim());
+}
+
 export default function Usuarios({ usuarioAtual, atualizarUsuarioLogado }) {
   const [usuarios, setUsuarios] = useState([]);
   const [busca, setBusca] = useState('');
@@ -34,8 +41,6 @@ export default function Usuarios({ usuarioAtual, atualizarUsuarioLogado }) {
   const [modalAvisoVisible, setModalAvisoVisible] = useState(false);
   const [mensagemAviso, setMensagemAviso] = useState('');
   const [modalExcluirVisible, setModalExcluirVisible] = useState(false);
-
-  const regexUsuario = /^\w{3,}$/;
 
   const carregarUsuarios = async () => {
     try {
@@ -109,7 +114,7 @@ export default function Usuarios({ usuarioAtual, atualizarUsuarioLogado }) {
       .insert([
         {
           NmUsuario: loginLimpo,
-          PswUsuario: base64.encode(senhaLimpa),
+          PswUsuario: criptografarSenha(senhaLimpa),
           NvlUsuario: Number(novoNivel),
         },
       ]);
@@ -170,7 +175,7 @@ export default function Usuarios({ usuarioAtual, atualizarUsuarioLogado }) {
     }
 
     const senhaFinal =
-      senhaLimpa !== '' ? base64.encode(senhaLimpa) : usuarioSelecionado.senha;
+      senhaLimpa !== '' ? criptografarSenha(senhaLimpa) : usuarioSelecionado.senha;
 
     const { error } = await supabase
       .from('GM_Usuarios')
