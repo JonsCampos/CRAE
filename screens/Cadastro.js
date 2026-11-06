@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -50,7 +50,18 @@ export default function Cadastro({
   const [dropdownCatAberto, setDropdownCatAberto] = useState(false);
   const [dropdownLocAberto, setDropdownLocAberto] = useState(false);
 
-  // Regex do slide regex.pptx: valida se contém apenas dígitos (\d+)
+  useEffect(() => {
+    if (categoria === '' && categorias.length > 0) {
+      setCategoria(categorias[0].nome);
+    }
+  }, [categorias]);
+
+  useEffect(() => {
+    if (localizacao === '' && localizacoes.length > 0) {
+      setLocalizacao(localizacoes[0].nome);
+    }
+  }, [localizacoes]);
+
   const regexDigitos = /^\d+$/;
 
   const salvarFormulario = () => {
@@ -60,7 +71,10 @@ export default function Cadastro({
       localizacao.trim() === '' ||
       (!itemExistente && quantidade.trim() === '')
     ) {
-      setMensagemModal('Por favor, preencha todos os campos obrigatórios (*).');
+      Vibration.vibrate(400);
+      setMensagemModal(
+        'Preencha todos os campos obrigatórios (*). Se não houver Categoria ou Localização, crie uma clicando no menu suspenso.'
+      );
       setModalVisible(true);
       return;
     }
@@ -74,10 +88,10 @@ export default function Cadastro({
         localizacao: localizacao,
         quantidade: itemExistente.quantidade,
       };
-      Vibration.vibrate(300);
       editarMaterial(itemAtualizado);
     } else {
       if (!regexDigitos.test(quantidade.trim())) {
+        Vibration.vibrate(400);
         setMensagemModal(
           'A quantidade inicial deve conter apenas dígitos numéricos (>= 0).'
         );
@@ -94,7 +108,6 @@ export default function Cadastro({
         localizacao: localizacao,
         quantidade: qtdNumerica,
       };
-      Vibration.vibrate(300);
       adicionarMaterial(novoItem);
     }
 
@@ -103,7 +116,6 @@ export default function Cadastro({
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* MODAL 1: Avisos de Validação */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -123,7 +135,6 @@ export default function Cadastro({
         </View>
       </Modal>
 
-      {/* MODAL 2: Lista Suspensa de Categorias */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -138,6 +149,11 @@ export default function Cadastro({
               data={categorias}
               keyExtractor={(item) => item.id}
               style={{ width: '100%', maxHeight: 240 }}
+              ListEmptyComponent={
+                <Text style={{ textAlign: 'center', color: '#64748B', marginVertical: 15 }}>
+                  Nenhuma categoria cadastrada ainda.
+                </Text>
+              }
               renderItem={({ item }) => {
                 const selecionado = item.nome === categoria;
                 return (
@@ -159,7 +175,6 @@ export default function Cadastro({
                           : styles.textoItemDropdown
                       }
                     >
-                      {selecionado ? '✔  ' : '📂  '}
                       {item.nome}
                     </Text>
                   </Pressable>
@@ -191,7 +206,6 @@ export default function Cadastro({
         </View>
       </Modal>
 
-      {/* MODAL 3: Lista Suspensa de Localizações Físicas */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -206,6 +220,11 @@ export default function Cadastro({
               data={localizacoes}
               keyExtractor={(item) => item.id}
               style={{ width: '100%', maxHeight: 240 }}
+              ListEmptyComponent={
+                <Text style={{ textAlign: 'center', color: '#64748B', marginVertical: 15 }}>
+                  Nenhuma localização cadastrada ainda.
+                </Text>
+              }
               renderItem={({ item }) => {
                 const selecionado = item.nome === localizacao;
                 return (
@@ -227,7 +246,6 @@ export default function Cadastro({
                           : styles.textoItemDropdown
                       }
                     >
-                      {selecionado ? '✔  ' : '📍  '}
                       {item.nome}
                     </Text>
                   </Pressable>
@@ -263,8 +281,8 @@ export default function Cadastro({
         <View style={styles.card}>
           <Text style={styles.tituloForm}>
             {itemExistente
-              ? '✏️ Editar Dados do Material'
-              : '➕ Novo Material no Acervo'}
+              ? 'Editar Dados do Material'
+              : 'Novo Material no Acervo'}
           </Text>
 
           <Text style={styles.label}>NOME DO OBJETO *</Text>
@@ -282,7 +300,7 @@ export default function Cadastro({
             onPress={() => setDropdownCatAberto(true)}
           >
             <Text style={styles.dropdownTextoSelecionado}>
-              📂  {categoria !== '' ? categoria : 'Selecione uma categoria...'}
+              {categoria !== '' ? categoria : 'Toque para criar/selecionar categoria...'}
             </Text>
             <Text style={styles.dropdownSeta}>▼</Text>
           </Pressable>
@@ -293,7 +311,7 @@ export default function Cadastro({
             onPress={() => setDropdownLocAberto(true)}
           >
             <Text style={styles.dropdownTextoLocal}>
-              📍  {localizacao !== '' ? localizacao : 'Selecione uma localização...'}
+              {localizacao !== '' ? localizacao : 'Toque para criar/selecionar local...'}
             </Text>
             <Text style={styles.dropdownSetaLocal}>▼</Text>
           </Pressable>
@@ -325,8 +343,8 @@ export default function Cadastro({
 
           {itemExistente ? (
             <Text style={styles.textoAviso}>
-              ℹ️ Para alterar o saldo, use o botão "Movimentar Entrada / Saída"
-              na tela principal.
+              Para alterar o saldo, use o botão "Movimentar Entrada / Saída" na
+              tela principal.
             </Text>
           ) : null}
 

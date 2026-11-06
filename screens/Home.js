@@ -20,7 +20,6 @@ export default function Home({
   removerMaterial,
 }) {
   const [busca, setBusca] = useState('');
-  // 'categoria' (SectionList) | 'local' (SectionList) | 'geral' (FlatList)
   const [modoVisao, setModoVisao] = useState('categoria');
 
   const [modalExcluirVisible, setModalExcluirVisible] = useState(false);
@@ -30,12 +29,11 @@ export default function Home({
   const [qtdMovimentacao, setQtdMovimentacao] = useState('');
   const [erroEstoque, setErroEstoque] = useState('');
 
-  // Regex para validar apenas dígitos numéricos na movimentação (\d+ do slide regex.pptx)
   const regexApenasNumeros = /^\d+$/;
 
   const compartilharWhatsApp = (item) => {
     const categoriaTexto = item.categoria ? item.categoria : 'Geral';
-    const mensagem = `📦 *Inventário Dra. Luna*\nCategoria: ${categoriaTexto}\nMaterial: ${item.nome}\nLocal: ${item.localizacao}\nEstoque atual: ${item.quantidade} un.`;
+    const mensagem = `*Inventário Dra. Luna*\nCategoria: ${categoriaTexto}\nMaterial: ${item.nome}\nLocal: ${item.localizacao}\nEstoque atual: ${item.quantidade} un.`;
     Linking.openURL(`https://wa.me/?text=${encodeURIComponent(mensagem)}`);
   };
 
@@ -48,12 +46,14 @@ export default function Home({
 
   const confirmarMovimentacao = (tipo) => {
     if (!regexApenasNumeros.test(qtdMovimentacao.trim())) {
+      Vibration.vibrate(400);
       setErroEstoque('Digite apenas números inteiros válidos.');
       return;
     }
 
     const valor = parseInt(qtdMovimentacao.trim(), 10);
     if (valor <= 0) {
+      Vibration.vibrate(400);
       setErroEstoque('A quantidade deve ser maior que zero.');
       return;
     }
@@ -61,7 +61,6 @@ export default function Home({
     if (tipo === 'entrada') {
       const novoSaldo = itemSelecionado.quantidade + valor;
       atualizarEstoque(itemSelecionado.id, novoSaldo);
-      Vibration.vibrate(200);
       setModalEstoqueVisible(false);
     } else if (tipo === 'saida') {
       if (valor > itemSelecionado.quantidade) {
@@ -73,7 +72,6 @@ export default function Home({
       }
       const novoSaldo = itemSelecionado.quantidade - valor;
       atualizarEstoque(itemSelecionado.id, novoSaldo);
-      Vibration.vibrate(200);
       setModalEstoqueVisible(false);
     }
   };
@@ -101,7 +99,6 @@ export default function Home({
     return nome.includes(termo) || local.includes(termo) || cat.includes(termo);
   });
 
-  // Agrupa dinamicamente por Categoria ou por Localização Física para a SectionList
   const secoesAgrupadas = [];
   materiaisFiltrados.forEach((item) => {
     const chaveGrupo =
@@ -137,7 +134,7 @@ export default function Home({
 
         {modoVisao !== 'categoria' ? (
           <Text style={styles.textoCategoria}>
-            🗂️ {item.categoria || 'Geral'}
+            Categoria: {item.categoria || 'Geral'}
           </Text>
         ) : null}
 
@@ -147,7 +144,7 @@ export default function Home({
 
         {modoVisao !== 'local' ? (
           <View style={styles.caixaLocal}>
-            <Text style={styles.textoLocal}>📍 {item.localizacao}</Text>
+            <Text style={styles.textoLocal}>Local: {item.localizacao}</Text>
           </View>
         ) : null}
 
@@ -156,7 +153,7 @@ export default function Home({
           onPress={() => abrirModalEstoque(item)}
         >
           <Text style={styles.textoBotaoMovimentar}>
-            📦 Movimentar Entrada / Saída
+            Movimentar Entrada / Saída
           </Text>
         </Pressable>
 
@@ -165,7 +162,7 @@ export default function Home({
             style={styles.botaoWhats}
             onPress={() => compartilharWhatsApp(item)}
           >
-            <Text style={styles.textoBotaoSecundarioCard}>💬 WhatsApp</Text>
+            <Text style={styles.textoBotaoSecundarioCard}>WhatsApp</Text>
           </Pressable>
 
           <Pressable
@@ -174,14 +171,14 @@ export default function Home({
               navigation.navigate('Cadastro', { itemParaEditar: item })
             }
           >
-            <Text style={styles.textoBotaoEditarCard}>✏️ Editar</Text>
+            <Text style={styles.textoBotaoEditarCard}>Editar</Text>
           </Pressable>
 
           <Pressable
             style={styles.botaoExcluir}
             onPress={() => pedirConfirmacaoExclusao(item)}
           >
-            <Text style={styles.textoBotaoExcluirCard}>🗑️ Excluir</Text>
+            <Text style={styles.textoBotaoExcluirCard}>Excluir</Text>
           </Pressable>
         </View>
       </View>
@@ -190,7 +187,6 @@ export default function Home({
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* MODAL 1: Movimentação de Estoque */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -201,7 +197,7 @@ export default function Home({
           <View style={styles.modalCaixa}>
             <Text style={styles.modalTitulo}>Movimentar Estoque</Text>
             <Text style={styles.modalSubtitulo}>
-              {itemSelecionado?.nome} • Saldo atual:{' '}
+              {itemSelecionado?.nome} - Saldo atual:{' '}
               <Text style={{ fontWeight: 'bold', color: '#0F172A' }}>
                 {itemSelecionado?.quantidade} un.
               </Text>
@@ -249,7 +245,6 @@ export default function Home({
         </View>
       </Modal>
 
-      {/* MODAL 2: Confirmação de Exclusão */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -290,13 +285,12 @@ export default function Home({
 
       <TextInput
         style={styles.inputBusca}
-        placeholder="🔍 Buscar por nome, categoria ou localização..."
+        placeholder="Buscar por nome, categoria ou localização..."
         placeholderTextColor="#64748B"
         value={busca}
         onChangeText={setBusca}
       />
 
-      {/* Seletor de Abas: Por Categoria (SectionList) | Por Local (SectionList) | Geral (FlatList) */}
       <View style={styles.abasContainer}>
         <Pressable
           style={modoVisao === 'categoria' ? styles.abaAtiva : styles.abaInativa}
@@ -309,7 +303,7 @@ export default function Home({
                 : styles.textoAbaInativa
             }
           >
-            📂 Categorias
+            Categorias
           </Text>
         </Pressable>
 
@@ -324,7 +318,7 @@ export default function Home({
                 : styles.textoAbaInativa
             }
           >
-            📍 Por Local
+            Por Local
           </Text>
         </Pressable>
 
@@ -339,7 +333,7 @@ export default function Home({
                 : styles.textoAbaInativa
             }
           >
-            📋 Geral (FlatList)
+            Geral
           </Text>
         </Pressable>
       </View>
@@ -352,14 +346,14 @@ export default function Home({
           showsVerticalScrollIndicator={false}
           renderSectionHeader={({ section: { title, data } }) => (
             <View style={styles.headerCategoriaBox}>
-              <Text style={styles.headerCategoriaTexto}>
-                {modoVisao === 'local' ? `📍 ${title}` : `📂 ${title}`}
-              </Text>
+              <Text style={styles.headerCategoriaTexto}>{title}</Text>
               <Text style={styles.headerCategoriaCount}>{data.length}</Text>
             </View>
           )}
           ListEmptyComponent={
-            <Text style={styles.listaVazia}>Nenhum material encontrado.</Text>
+            <Text style={styles.listaVazia}>
+              Seu inventário está vazio. Clique em "+ Novo Material" para começar.
+            </Text>
           }
         />
       ) : (
@@ -369,7 +363,9 @@ export default function Home({
           renderItem={renderizarCardMaterial}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <Text style={styles.listaVazia}>Nenhum material encontrado.</Text>
+            <Text style={styles.listaVazia}>
+              Seu inventário está vazio. Clique em "+ Novo Material" para começar.
+            </Text>
           }
         />
       )}

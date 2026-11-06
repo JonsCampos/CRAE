@@ -32,7 +32,8 @@ export default function Localizacoes({
 
   const [modalExcluirVisible, setModalExcluirVisible] = useState(false);
 
-  const mostrarAviso = (msg) => {
+  const mostrarAvisoErro = (msg) => {
+    Vibration.vibrate(400);
     setMensagemAviso(msg);
     setModalAvisoVisible(true);
   };
@@ -46,6 +47,7 @@ export default function Localizacoes({
   const confirmarCriacaoLocal = () => {
     const nomeLimpo = novaLocalizacao.trim();
     if (nomeLimpo === '') {
+      Vibration.vibrate(400);
       setErroCriar('Digite o nome da localização física.');
       return;
     }
@@ -54,12 +56,12 @@ export default function Localizacoes({
       (loc) => loc.nome.toLowerCase() === nomeLimpo.toLowerCase()
     );
     if (jaExiste) {
+      Vibration.vibrate(400);
       setErroCriar('Já existe uma localização cadastrada com este nome.');
       return;
     }
 
     adicionarLocalizacao(nomeLimpo);
-    Vibration.vibrate(200);
     setModalCriarVisible(false);
     setNovaLocalizacao('');
   };
@@ -74,6 +76,7 @@ export default function Localizacoes({
   const salvarEdicaoLocal = () => {
     const nomeLimpo = novoNomeEdicao.trim();
     if (nomeLimpo === '') {
+      Vibration.vibrate(400);
       setErroEditar('O nome da localização não pode ficar vazio.');
       return;
     }
@@ -84,6 +87,7 @@ export default function Localizacoes({
         loc.nome.toLowerCase() === nomeLimpo.toLowerCase()
     );
     if (jaExiste) {
+      Vibration.vibrate(400);
       setErroEditar('Já existe outra localização com este nome.');
       return;
     }
@@ -93,7 +97,6 @@ export default function Localizacoes({
       localSelecionado.nome,
       nomeLimpo
     );
-    Vibration.vibrate(200);
     setModalEditarVisible(false);
     setLocalSelecionado(null);
   };
@@ -104,8 +107,7 @@ export default function Localizacoes({
     ).length;
 
     if (qtdItensVinculados > 0) {
-      Vibration.vibrate(400);
-      mostrarAviso(
+      mostrarAvisoErro(
         `Não é possível excluir "${loc.nome}" pois existem ${qtdItensVinculados} material(is) guardados neste local.`
       );
       return;
@@ -118,7 +120,6 @@ export default function Localizacoes({
   const confirmarExclusao = () => {
     if (localSelecionado) {
       removerLocalizacao(localSelecionado.id);
-      Vibration.vibrate(200);
     }
     setModalExcluirVisible(false);
     setLocalSelecionado(null);
@@ -126,7 +127,6 @@ export default function Localizacoes({
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* MODAL 1: Criar Nova Localização */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -169,7 +169,6 @@ export default function Localizacoes({
         </View>
       </Modal>
 
-      {/* MODAL 2: Editar Nome da Localização */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -212,7 +211,6 @@ export default function Localizacoes({
         </View>
       </Modal>
 
-      {/* MODAL 3: Avisos e Bloqueios */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -232,7 +230,6 @@ export default function Localizacoes({
         </View>
       </Modal>
 
-      {/* MODAL 4: Confirmar Exclusão */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -275,6 +272,11 @@ export default function Localizacoes({
         data={localizacoes}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <Text style={{ textAlign: 'center', color: '#94A3B8', marginTop: 20 }}>
+            Nenhuma localização cadastrada.
+          </Text>
+        }
         renderItem={({ item }) => {
           const totalItens = materiais.filter(
             (m) => m.localizacao === item.nome
@@ -283,7 +285,7 @@ export default function Localizacoes({
           return (
             <View style={styles.cardItem}>
               <View style={{ flex: 1, marginRight: 10 }}>
-                <Text style={styles.nomeItem}>📍 {item.nome}</Text>
+                <Text style={styles.nomeItem}>{item.nome}</Text>
                 <Text style={styles.contadorItens}>
                   {totalItens} {totalItens === 1 ? 'item guardado aqui' : 'itens guardados aqui'}
                 </Text>
@@ -294,14 +296,16 @@ export default function Localizacoes({
                   style={styles.botaoCardEditar}
                   onPress={() => abrirModalEdicao(item)}
                 >
-                  <Text style={styles.textoCardEditar}>✏️ Editar</Text>
+                  <Text style={styles.textoCardEditar}>Editar</Text>
                 </Pressable>
 
                 <Pressable
                   style={styles.botaoCardExcluir}
                   onPress={() => tentarExcluirLocal(item)}
                 >
-                  <Text style={styles.textoCardExcluir}>🗑️</Text>
+                  <Text style={{ color: '#DC2626', fontWeight: 'bold', fontSize: 12 }}>
+                    Excluir
+                  </Text>
                 </Pressable>
               </View>
             </View>

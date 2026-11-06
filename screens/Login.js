@@ -7,13 +7,14 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  Vibration,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import base64 from 'react-native-base64';
 import { loginStyles as styles } from '../styles';
 
 export default function Login({ route }) {
-  const [x, setX] = useState(1); // 1 = Login | 2 = Cadastro (Aula5.txt)
+  const [x, setX] = useState(1);
   const [usr, setUsr] = useState('');
   const [pwd, setPwd] = useState('');
   const [carregando, setCarregando] = useState(false);
@@ -21,7 +22,10 @@ export default function Login({ route }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [mensagemModal, setMensagemModal] = useState('');
 
-  const exibirModal = (texto) => {
+  const exibirModal = (texto, isErro = true) => {
+    if (isErro) {
+      Vibration.vibrate(400);
+    }
     setMensagemModal(texto);
     setModalVisible(true);
   };
@@ -32,42 +36,41 @@ export default function Login({ route }) {
     setX(novoModo);
   };
 
-  // Validação com Regex (slide regex.pptx): alfanumérico (\w) de pelo menos 3 caracteres
   const regexUsuario = /^\w{3,}$/;
 
   const _storeData = async (usuario, senha) => {
     const userLimpo = usuario.trim();
     if (userLimpo === '' || senha.trim() === '') {
-      exibirModal('Por favor, preencha o usuário e a senha para criar sua conta.');
+      exibirModal('Por favor, preencha o usuário e a senha para criar sua conta.', true);
       return;
     }
     if (!regexUsuario.test(userLimpo)) {
-      exibirModal('O usuário deve ter pelo menos 3 caracteres alfanuméricos (sem espaços).');
+      exibirModal('O usuário deve ter pelo menos 3 caracteres alfanuméricos (sem espaços).', true);
       return;
     }
 
     try {
       setCarregando(true);
       let senhaCriptografada = base64.encode(senha);
-      await AsyncStorage.setItem(userLimpo, senhaCriptografada);
+      await AsyncStorage.setItem(`@user_${userLimpo.toLowerCase()}`, senhaCriptografada);
       setCarregando(false);
       alternarModo(1);
-      exibirModal('Conta criada com sucesso! Faça seu login para continuar.');
+      exibirModal('Conta criada com sucesso! Faça seu login para continuar.', false);
     } catch (error) {
       setCarregando(false);
-      exibirModal('Erro ao salvar usuário: ' + error.message);
+      exibirModal('Erro ao salvar usuário: ' + error.message, true);
     }
   };
 
   const _retrieveData = async (usuario, senha) => {
     const userLimpo = usuario.trim();
     if (userLimpo === '' || senha.trim() === '') {
-      exibirModal('Informe seu usuário e senha para acessar o acervo.');
+      exibirModal('Informe seu usuário e senha para acessar o acervo.', true);
       return;
     }
     try {
       setCarregando(true);
-      const senhaSalva = await AsyncStorage.getItem(userLimpo);
+      const senhaSalva = await AsyncStorage.getItem(`@user_${userLimpo.toLowerCase()}`);
       let senhaDigitadaCripto = base64.encode(senha);
       setCarregando(false);
 
@@ -77,11 +80,11 @@ export default function Login({ route }) {
       ) {
         route.params.funcLogar(true);
       } else {
-        exibirModal('Credenciais inválidas! Verifique seu usuário e senha.');
+        exibirModal('Credenciais inválidas! Verifique seu usuário e senha.', true);
       }
     } catch (error) {
       setCarregando(false);
-      exibirModal('Erro ao ler dados: ' + error.message);
+      exibirModal('Erro ao ler dados: ' + error.message, true);
     }
   };
 
@@ -95,7 +98,6 @@ export default function Login({ route }) {
       >
         <View style={styles.modalFundo}>
           <View style={styles.modalCaixa}>
-            <Text style={styles.modalIcone}>🔔</Text>
             <Text style={styles.modalTexto}>{mensagemModal}</Text>
             <Pressable
               style={styles.botaoPrimarioModal}
@@ -108,14 +110,10 @@ export default function Login({ route }) {
       </Modal>
 
       <View style={styles.card}>
-        <View style={styles.iconeCirculo}>
-          <Text style={styles.iconeTexto}>📦</Text>
-        </View>
-
-        <Text style={styles.titulo}>Acervo & Inventário</Text>
+        <Text style={styles.titulo}>Acervo e Inventário</Text>
         <Text style={styles.subtitulo}>
           {x === 1
-            ? 'Gestão de Materiais • Dra. Luna Ribeiro'
+            ? 'Gestão de Materiais - Dra. Luna Ribeiro'
             : 'Criar Nova Credencial de Acesso'}
         </Text>
 
